@@ -1,106 +1,95 @@
 'use server';
-import { db } from '@/lib/firebase-admin';
 import type { Conversation, Message, Memory } from '@/lib/types';
-import { Timestamp } from 'firebase-admin/firestore';
 
-const conversationsCollection = db.collection('conversations');
+// In-memory store
+let conversations: Conversation[] = [
+    {
+        id: '1',
+        title: 'General',
+        lastMessage: '¡Hola! ¿Cómo te fue el día?',
+        timestamp: new Date().toISOString(),
+        pinned: true,
+    }
+];
+let messages: { [conversationId: string]: Message[] } = {
+    '1': []
+};
+let memories: Memory[] = [];
+
+let nextConvId = 2;
+let nextMsgId = 1;
+let nextMemId = 1;
+
 
 export async function getConversations(): Promise<Conversation[]> {
-    const snapshot = await conversationsCollection.orderBy('pinned', 'desc').orderBy('lastMessageTimestamp', 'desc').get();
-
-    if (snapshot.empty) {
-        console.log('No conversations found, creating initial "General" chat.');
-        const generalConv = {
-            title: 'General',
-            lastMessage: '¡Hola! ¿Cómo te fue el día?',
-            lastMessageTimestamp: Timestamp.now(),
-            pinned: true,
-        };
-        const docRef = await conversationsCollection.add(generalConv);
-        const doc = await docRef.get();
-        const data = doc.data()!;
-        return [{
-            id: doc.id,
-            title: data.title,
-            lastMessage: data.lastMessage,
-            timestamp: (data.lastMessageTimestamp as Timestamp).toDate().toISOString(),
-            pinned: data.pinned
-        }];
-    }
-
-    return snapshot.docs.map(doc => {
-        const data = doc.data();
-        return {
-            id: doc.id,
-            title: data.title,
-            lastMessage: data.lastMessage,
-            timestamp: (data.lastMessageTimestamp as Timestamp).toDate().toISOString(),
-            pinned: data.pinned,
-        } as Conversation;
+    // sort by pinned then by timestamp
+    return [...conversations].sort((a, b) => {
+        if (a.pinned && !b.pinned) return -1;
+        if (!a.pinned && b.pinned) return 1;
+        return new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime();
     });
 }
 
 export async function getMessages(conversationId: string): Promise<Message[]> {
-    const snapshot = await conversationsCollection.doc(conversationId).collection('messages').orderBy('timestamp', 'asc').limit(50).get();
-    return snapshot.docs.map(doc => {
-        const data = doc.data();
-        return {
-            id: doc.id,
-            text: data.text,
-            sender: data.sender,
-            timestamp: (data.timestamp as Timestamp).toDate().toISOString(),
-        } as Message;
-    });
+    return messages[conversationId] || [];
 }
 
-export async function addMessage(conversationId: string, message: { text: string; sender: 'user' | 'bot' }) {
-     const messageWithTimestamp = { ...message, timestamp: Timestamp.now() };
-     await conversationsCollection.doc(conversationId).collection('messages').add(messageWithTimestamp);
-     await conversationsCollection.doc(conversationId).update({
-         lastMessage: message.text,
-         lastMessageTimestamp: messageWithTimestamp.timestamp
-     });
+export async function addMessage(conversationId: string, message: { text: string; sender: 'user' | 'bot' }): Promise<Message> {
+    const conversation = conversations.find(c => c.id === conversationId);
+    if (!conversation) {
+        throw new Error(`Conversation with id ${conversationId} not found.`);
+    }
+    const newMessage: Message = {
+        ...message,
+        id: (nextMsgId++).toString(),
+        timestamp: new Date().toISOString()
+    };
+    if (!messages[conversationId]) {
+        messages[conversationId] = [];
+    }
+    messages[conversationId].push(newMessage);
+
+    conversation.lastMessage = message.text;
+    conversation.timestamp = newMessage.timestamp;
+
+    return newMessage;
 }
 
 export async function saveMemory(memory: { summary: string; category: string }): Promise<string> {
-    const memoryWithTimestamp = { ...memory, createdAt: Timestamp.now() };
-    const docRef = await db.collection('memories').add(memoryWithTimestamp);
-    return docRef.id;
+    const newMemory: Memory = {
+        ...memory,
+        id: (nextMemId++).toString(),
+        createdAt: new Date().toISOString()
+    };
+    memories.push(newMemory);
+    return newMemory.id!;
 }
 
 export async function getOrCreateConversation(category: string): Promise<string> {
-    if (!category || category === 'General') {
-        const generalSnapshot = await conversationsCollection.where('title', '==', 'General').limit(1).get();
-        if(!generalSnapshot.empty) return generalSnapshot.docs[0].id;
+    const normalizedCategory = category.charAt(0).toUpperCase() + category.slice(1).toLowerCase();
+    let conversation = conversations.find(c => c.title === normalizedCategory);
+
+    if (conversation) {
+        return conversation.id;
     }
 
-    const normalizedCategory = category.charAt(0).toUpperCase() + category.slice(1).toLowerCase();
-    const snapshot = await conversationsCollection.where('title', '==', normalizedCategory).limit(1).get();
-    
-    if (!snapshot.empty) {
-        return snapshot.docs[0].id;
-    } else {
-        const newConv = {
-            title: normalizedCategory,
-            lastMessage: `Se ha creado un nuevo chat para ${normalizedCategory}.`,
-            lastMessageTimestamp: Timestamp.now(),
-            pinned: false,
-        };
-        const docRef = await conversationsCollection.add(newConv);
-        return docRef.id;
-    }
+    const newConv: Conversation = {
+        id: (nextConvId++).toString(),
+        title: normalizedCategory,
+        lastMessage: `Se ha creado un nuevo chat para ${normalizedCategory}.`,
+        timestamp: new Date().toISOString(),
+        pinned: false,
+    };
+    conversations.push(newConv);
+    messages[newConv.id] = [];
+    return newConv.id;
 }
 
 export async function searchMemories(query?: string): Promise<Memory[]> {
     // This is a simple implementation. A real app would use a vector search for better results.
-    const snapshot = await db.collection('memories').orderBy('createdAt', 'desc').limit(20).get();
-     return snapshot.docs.map(doc => {
-        const data = doc.data();
-        return {
-            id: doc.id,
-            summary: data.summary,
-            category: data.category,
-            createdAt: (data.createdAt as Timestamp).toDate().toISOString(),
-        } as Memory
-    });
+    let results = [...memories].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    if (query && query.trim() !== '') {
+         results = results.filter(m => m.summary.toLowerCase().includes(query.toLowerCase()));
+    }
+    return results.slice(0, 20);
 }
