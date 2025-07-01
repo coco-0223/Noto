@@ -74,8 +74,8 @@ export default function ChatPage() {
        });
        if (response.data.informationSummary) {
           toast({
-              title: `Noto ha guardado algo en ${response.data.category}`,
-              description: `Resumen: ${response.data.informationSummary}`
+              title: `Nota guardada en "${response.data.category}"`,
+              description: "Noto ha almacenado la información para ti."
           })
       }
     } else {
