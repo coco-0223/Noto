@@ -11,19 +11,19 @@ type Props = {
 };
 
 export default function MessageList({ messages, isLoading, onFeedback }: Props) {
-  const scrollAreaRef = useRef<HTMLDivElement>(null);
+  const viewport = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (scrollAreaRef.current) {
-      scrollAreaRef.current.scrollTo({
-        top: scrollAreaRef.current.scrollHeight,
+    if (viewport.current) {
+      viewport.current.scrollTo({
+        top: viewport.current.scrollHeight,
         behavior: 'smooth',
       });
     }
   }, [messages, isLoading]);
 
   return (
-    <ScrollArea className="flex-1" viewportRef={scrollAreaRef}>
+    <ScrollArea className="flex-1" viewportRef={viewport}>
       <div className="p-4 space-y-6">
         {messages.map((msg) => (
           <MessageBubble key={msg.id} message={msg} onFeedback={onFeedback} />
