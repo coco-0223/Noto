@@ -40,11 +40,7 @@ const proactiveMemoryPrompt = ai.definePrompt({
 
   Here's the chat history so far:
   {{#each chatHistory}}
-  {{#if (eq role "user")}}
-  User: {{{content}}}
-  {{else}}
-  Chatbot: {{{content}}}
-  {{/if}}
+  {{this.role}}: {{{this.content}}}
   {{/each}}
 
   Based on the user input:
