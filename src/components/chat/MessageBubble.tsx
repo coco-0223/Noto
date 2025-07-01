@@ -4,6 +4,7 @@ import { cn } from '@/lib/utils';
 import { ThumbsDown, ThumbsUp } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { format } from 'date-fns';
+import { Timestamp } from 'firebase/firestore';
 
 type Props = {
   message: Message;
@@ -13,8 +14,17 @@ type Props = {
 export default function MessageBubble({ message, onFeedback }: Props) {
   const isUser = message.sender === 'user';
   const showFeedbackButtons = !isUser && onFeedback;
-  const timestamp = message.timestamp ? format(new Date(message.timestamp), 'p') : '';
 
+  let date: Date;
+  if (message.timestamp instanceof Timestamp) {
+    date = message.timestamp.toDate();
+  } else if (typeof message.timestamp === 'string') {
+    date = new Date(message.timestamp);
+  } else {
+    date = new Date();
+  }
+
+  const timestamp = format(date, 'p');
 
   return (
     <div
