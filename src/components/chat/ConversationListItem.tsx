@@ -7,6 +7,7 @@ import type { Conversation } from '@/lib/types';
 import { Pin } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { Timestamp } from 'firebase/firestore';
 
 type Props = {
   conversation: Conversation;
@@ -14,7 +15,8 @@ type Props = {
 };
 
 export default function ConversationListItem({ conversation, icon }: Props) {
-  const timeAgo = formatDistanceToNow(new Date(conversation.timestamp), { addSuffix: true, locale: es });
+  const date = conversation.timestamp instanceof Timestamp ? conversation.timestamp.toDate() : new Date();
+  const timeAgo = formatDistanceToNow(date, { addSuffix: true, locale: es });
 
   return (
     <Link href={`/chat/${conversation.id}`} className="block transition-colors hover:bg-secondary/50">

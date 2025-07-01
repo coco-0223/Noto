@@ -2,12 +2,16 @@
 import { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
 import type { Message } from '@/lib/types';
-import { getBotResponse, getInitialChatData } from '@/app/actions';
+import { getBotResponse } from '@/app/actions';
 import ChatHeader from '@/components/chat/ChatHeader';
 import MessageList from '@/components/chat/MessageList';
 import MessageInput from '@/components/chat/MessageInput';
 import { useToast } from '@/hooks/use-toast';
-import { format } from 'date-fns';
+import useChatMessages from '@/hooks/useChatMessages';
+import useConversationInfo from '@/hooks/useConversationInfo';
+import { doc, getDoc } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
+
 import { BookText, Cake, Calendar, Lightbulb, ListTodo, MessageSquare, Loader2 } from 'lucide-react';
 
 const categoryIcons: {[key: string]: React.ReactNode} = {
@@ -17,40 +21,23 @@ const categoryIcons: {[key: string]: React.ReactNode} = {
     Recetas: <BookText className="w-5 h-5" />,
     Eventos: <Calendar className="w-5 h-5" />,
     Cumpleaños: <Cake className="w-5 h-5" />,
+    Recordatorios: <Calendar className="w-5 h-5" />,
 };
+
 
 export default function ChatPage() {
   const params = useParams();
   const chatId = Array.isArray(params.id) ? params.id[0] : params.id as string;
   
-  const [messages, setMessages] = useState<Message[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [isSending, setIsSending] = useState(false);
-  const [chatInfo, setChatInfo] = useState<{title: string, icon: React.ReactNode}>({ title: 'Cargando...', icon: <Loader2 className="w-5 h-5 animate-spin" /> });
-  const { toast } = useToast();
+  const { messages, setMessages, loading: messagesLoading } = useChatMessages(chatId);
+  const { info: chatInfo, loading: infoLoading } = useConversationInfo(chatId);
 
-  useEffect(() => {
-    const loadChat = async () => {
-      setIsLoading(true);
-      const response = await getInitialChatData(chatId);
-      if (response.success && response.data) {
-        setMessages(response.data.messages);
-        setChatInfo({
-          title: response.data.title,
-          icon: categoryIcons[response.data.icon] || <MessageSquare className="w-5 h-5" />,
-        });
-      } else {
-        toast({
-          variant: "destructive",
-          title: "Error al cargar el chat",
-          description: response.error,
-        });
-        setChatInfo({ title: 'Error', icon: <MessageSquare className="w-5 h-5" /> });
-      }
-      setIsLoading(false);
-    };
-    loadChat();
-  }, [chatId, toast]);
+  const [isSending, setIsSending] = useState(false);
+  const { toast } = useToast();
+  
+  const displayIcon = chatInfo?.title ? categoryIcons[chatInfo.title] || <MessageSquare className="w-5 h-5" /> : <Loader2 className="w-5 h-5 animate-spin" />;
+  const displayTitle = chatInfo?.title || 'Cargando...';
+
 
   const handleSendMessage = async (input: string) => {
     setIsSending(true);
@@ -68,17 +55,23 @@ export default function ChatPage() {
     setIsSending(false);
 
     if (response.success && response.data) {
-       setMessages(prev => {
-        const newMessages = prev.filter(m => m.id !== optimisticMessage.id);
-        return [...newMessages, response.data.userMessage, response.data.botMessage];
-       });
+       // Optimistic message will be replaced by the real-time listener
+       setMessages(prev => prev.filter(m => m.id !== optimisticMessage.id));
+
        if (response.data.informationSummary) {
           toast({
-              title: `Nota guardada en "${response.data.category}"`,
-              description: "Noto ha almacenado la información para ti."
+              title: `Nota guardada`,
+              description: `Tu nota ha sido guardada en "${response.data.category}".`
           })
       }
+       if (response.data.reminder) {
+          toast({
+              title: `Recordatorio establecido`,
+              description: `Te recordaré sobre "${response.data.reminder.text}".`
+          })
+       }
     } else {
+      setMessages(prev => prev.filter(m => m.id !== optimisticMessage.id));
       const errorBotMessage: Message = {
         id: Date.now().toString(),
         text: 'Lo siento, algo salió mal. Por favor, inténtalo de nuevo.',
@@ -95,6 +88,7 @@ export default function ChatPage() {
   };
 
   const handleFeedback = (messageId: string, feedback: 'liked' | 'disliked') => {
+    // This would update the document in Firestore in a real app
     setMessages(messages => messages.map(msg => 
       msg.id === messageId ? { ...msg, feedback } : msg
     ));
@@ -106,8 +100,8 @@ export default function ChatPage() {
 
   return (
     <div className="flex flex-col h-screen bg-background text-foreground max-w-4xl mx-auto border-x shadow-2xl">
-      <ChatHeader title={chatInfo.title} icon={chatInfo.icon} />
-      <MessageList messages={messages} isLoading={isLoading || isSending} onFeedback={handleFeedback} />
+      <ChatHeader title={displayTitle} icon={displayIcon} />
+      <MessageList messages={messages} isLoading={messagesLoading || isSending} onFeedback={handleFeedback} />
       <MessageInput onSubmit={handleSendMessage} isLoading={isSending} />
     </div>
   );
