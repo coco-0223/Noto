@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { MoreVertical, ArrowLeft } from 'lucide-react';
 import SettingsSheet from './SettingsSheet';
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 
 type Props = {
     title: string;
@@ -14,15 +14,16 @@ type Props = {
 
 export default function ChatHeader({ title, icon }: Props) {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-  const router = useRouter();
 
   return (
     <>
       <header className="flex items-center justify-between p-3 border-b bg-secondary/50 backdrop-blur-sm sticky top-0 z-10">
         <div className="flex items-center gap-3">
-          <Button variant="ghost" size="icon" className="h-9 w-9" onClick={() => router.back()}>
-            <ArrowLeft className="w-5 h-5" />
-            <span className="sr-only">Volver</span>
+          <Button asChild variant="ghost" size="icon" className="h-9 w-9">
+            <Link href="/">
+              <ArrowLeft className="w-5 h-5" />
+              <span className="sr-only">Volver</span>
+            </Link>
           </Button>
           <Avatar className='bg-secondary flex items-center justify-center'>
             {icon}
