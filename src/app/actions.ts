@@ -6,12 +6,14 @@ import { personalizeChatbotStyle } from '@/ai/flows/personalize-chatbot-style';
 
 export async function getBotResponse(
   userInput: string,
-  chatHistory: ChatHistory[]
+  chatHistory: ChatHistory[],
+  categoryId: string
 ) {
   try {
     const response = await proactiveMemory({
       userInput,
       chatHistory,
+      categoryId,
     });
     return {
       success: true,
