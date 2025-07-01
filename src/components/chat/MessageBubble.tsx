@@ -3,6 +3,7 @@ import type { Message } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { ThumbsDown, ThumbsUp } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { format } from 'date-fns';
 
 type Props = {
   message: Message;
@@ -12,6 +13,8 @@ type Props = {
 export default function MessageBubble({ message, onFeedback }: Props) {
   const isUser = message.sender === 'user';
   const showFeedbackButtons = !isUser && onFeedback;
+  const timestamp = message.timestamp ? format(new Date(message.timestamp), 'p') : '';
+
 
   return (
     <div
@@ -33,7 +36,7 @@ export default function MessageBubble({ message, onFeedback }: Props) {
           <p className="whitespace-pre-wrap">{message.text}</p>
           <div className='flex justify-end items-end w-full'>
             <span className="text-[10px] text-muted-foreground/80 float-right mt-1 ml-2">
-              {message.timestamp}
+              {timestamp}
             </span>
           </div>
 

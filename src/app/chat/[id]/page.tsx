@@ -1,75 +1,78 @@
 'use client';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
-import type { Message, ChatHistory } from '@/lib/types';
-import { getBotResponse } from '@/app/actions';
+import type { Message } from '@/lib/types';
+import { getBotResponse, getInitialChatData } from '@/app/actions';
 import ChatHeader from '@/components/chat/ChatHeader';
 import MessageList from '@/components/chat/MessageList';
 import MessageInput from '@/components/chat/MessageInput';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
-import { BookText, Cake, Calendar, Lightbulb, ListTodo, MessageSquare } from 'lucide-react';
+import { BookText, Cake, Calendar, Lightbulb, ListTodo, MessageSquare, Loader2 } from 'lucide-react';
 
-const conversationsData: {[key: string]: { title: string; icon: React.ReactNode }} = {
-    general: { title: 'General', icon: <MessageSquare className="w-5 h-5" /> },
-    ideas: { title: 'Ideas', icon: <Lightbulb className="w-5 h-5" /> },
-    tareas: { title: 'Tareas', icon: <ListTodo className="w-5 h-5" /> },
-    recetas: { title: 'Recetas', icon: <BookText className="w-5 h-5" /> },
-    eventos: { title: 'Eventos', icon: <Calendar className="w-5 h-5" /> },
-    cumpleanos: { title: 'Cumpleaños', icon: <Cake className="w-5 h-5" /> },
+const categoryIcons: {[key: string]: React.ReactNode} = {
+    General: <MessageSquare className="w-5 h-5" />,
+    Ideas: <Lightbulb className="w-5 h-5" />,
+    Tareas: <ListTodo className="w-5 h-5" />,
+    Recetas: <BookText className="w-5 h-5" />,
+    Eventos: <Calendar className="w-5 h-5" />,
+    Cumpleaños: <Cake className="w-5 h-5" />,
 };
-
-
-const initialMessages: Message[] = [
-  {
-    id: '1',
-    text: '¡Hola! ¿Cómo te fue el día?',
-    sender: 'bot',
-    timestamp: format(new Date(), 'p'),
-  },
-];
 
 export default function ChatPage() {
   const params = useParams();
   const chatId = Array.isArray(params.id) ? params.id[0] : params.id as string;
   
-  const [messages, setMessages] = useState<Message[]>(initialMessages);
+  const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [isSending, setIsSending] = useState(false);
+  const [chatInfo, setChatInfo] = useState<{title: string, icon: React.ReactNode}>({ title: 'Cargando...', icon: <Loader2 className="w-5 h-5 animate-spin" /> });
   const { toast } = useToast();
-  
-  const chatInfo = conversationsData[chatId] || { title: 'Chat', icon: <MessageSquare className="w-5 h-5" /> };
 
+  useEffect(() => {
+    const loadChat = async () => {
+      setIsLoading(true);
+      const response = await getInitialChatData(chatId);
+      if (response.success && response.data) {
+        setMessages(response.data.messages);
+        setChatInfo({
+          title: response.data.title,
+          icon: categoryIcons[response.data.icon] || <MessageSquare className="w-5 h-5" />,
+        });
+      } else {
+        toast({
+          variant: "destructive",
+          title: "Error al cargar el chat",
+          description: response.error,
+        });
+        setChatInfo({ title: 'Error', icon: <MessageSquare className="w-5 h-5" /> });
+      }
+      setIsLoading(false);
+    };
+    loadChat();
+  }, [chatId, toast]);
 
   const handleSendMessage = async (input: string) => {
-    setIsLoading(true);
-    const newMessage: Message = {
+    setIsSending(true);
+    const optimisticMessage: Message = {
       id: Date.now().toString(),
       text: input,
       sender: 'user',
-      timestamp: format(new Date(), 'p'),
+      timestamp: new Date().toISOString(),
     };
     
-    const updatedMessages = [...messages, newMessage];
-    setMessages(updatedMessages);
+    setMessages((prev) => [...prev, optimisticMessage]);
 
-    const chatHistory: ChatHistory[] = updatedMessages.map((msg) => ({
-      role: msg.sender === 'user' ? 'user' : 'bot',
-      content: msg.text,
-    }));
+    const response = await getBotResponse(input, chatId);
 
-    const response = await getBotResponse(input, chatHistory, chatId);
-
-    setIsLoading(false);
+    setIsSending(false);
 
     if (response.success && response.data) {
-      const botMessage: Message = {
-        id: Date.now().toString(),
-        text: response.data.chatbotResponse,
-        sender: 'bot',
-        timestamp: format(new Date(), 'p'),
-      };
-      setMessages((prev) => [...prev, botMessage]);
-      if (response.data.informationSummary) {
+       setMessages(prev => {
+        const newMessages = prev.filter(m => m.id !== optimisticMessage.id);
+        return [...newMessages, response.data.userMessage, response.data.botMessage];
+       });
+       if (response.data.informationSummary) {
           toast({
               title: `Noto ha guardado algo en ${response.data.category}`,
               description: `Resumen: ${response.data.informationSummary}`
@@ -80,7 +83,7 @@ export default function ChatPage() {
         id: Date.now().toString(),
         text: 'Lo siento, algo salió mal. Por favor, inténtalo de nuevo.',
         sender: 'bot',
-        timestamp: format(new Date(), 'p'),
+        timestamp: new Date().toISOString(),
       };
       setMessages((prev) => [...prev, errorBotMessage]);
       toast({
@@ -104,8 +107,8 @@ export default function ChatPage() {
   return (
     <div className="flex flex-col h-screen bg-background text-foreground max-w-4xl mx-auto border-x shadow-2xl">
       <ChatHeader title={chatInfo.title} icon={chatInfo.icon} />
-      <MessageList messages={messages} isLoading={isLoading} onFeedback={handleFeedback} />
-      <MessageInput onSubmit={handleSendMessage} isLoading={isLoading} />
+      <MessageList messages={messages} isLoading={isLoading || isSending} onFeedback={handleFeedback} />
+      <MessageInput onSubmit={handleSendMessage} isLoading={isSending} />
     </div>
   );
 }

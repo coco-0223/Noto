@@ -16,7 +16,12 @@ export type Conversation = {
   title: string;
   lastMessage: string;
   timestamp: string;
-  avatar: string;
-  unreadCount?: number;
   pinned?: boolean;
 };
+
+export type Memory = {
+    id?: string;
+    summary: string;
+    category: string;
+    createdAt: string;
+}
