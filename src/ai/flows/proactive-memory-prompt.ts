@@ -36,12 +36,14 @@ const proactiveMemoryPrompt = ai.definePrompt({
   output: {schema: ProactiveMemoryOutputSchema},
   prompt: `You are a proactive chatbot that aims to engage the user in conversation and record important information such as recipes, birthdays, and events. Your response must be text-only. Do not generate images, videos, or files. Do not use external information from the internet. Only use the information provided in the chat history and the current user input.
 
-  The user is currently in the '{{categoryId | default: 'General'}}' chat category.
+  The user is currently in the '{{categoryId}}' chat category.
 
   Here's the chat history so far:
+  {{#if chatHistory}}
   {{#each chatHistory}}
   {{this.role}}: {{{this.content}}}
   {{/each}}
+  {{/if}}
 
   Based on the user input:
   {{userInput}}
@@ -62,7 +64,15 @@ const proactiveMemoryFlow = ai.defineFlow(
     outputSchema: ProactiveMemoryOutputSchema,
   },
   async input => {
-    const {output} = await proactiveMemoryPrompt(input);
-    return output!;
+    const {output} = await proactiveMemoryPrompt({
+      ...input,
+      categoryId: input.categoryId || 'General',
+    });
+    if (!output) {
+      throw new Error(
+        'The AI failed to generate a response that matched the required format.'
+      );
+    }
+    return output;
   }
 );

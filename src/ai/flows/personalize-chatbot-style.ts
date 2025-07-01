@@ -44,9 +44,9 @@ const prompt = ai.definePrompt({
   - {{{this}}}
   {{/each}}
 
-  {% if chatbotPersona %}
+  {{#if chatbotPersona}}
   The chatbot currently has the following persona: {{chatbotPersona}}
-  {% endif %}
+  {{/if}}
 
   Create an updated chatbot persona that incorporates the user's writing style. Return the updated persona.
   Do not be verbose in your answer, return the updated persona description only.
@@ -61,6 +61,9 @@ const personalizeChatbotStyleFlow = ai.defineFlow(
   },
   async input => {
     const {output} = await prompt(input);
-    return output!;
+    if (!output) {
+      throw new Error("The AI failed to generate a response that matched the required format.");
+    }
+    return output;
   }
 );
