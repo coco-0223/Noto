@@ -9,11 +9,11 @@ import { revalidatePath } from 'next/cache';
 export async function getBotResponse(userInput: string, conversationId: string) {
   try {
     // 1. Save user message
-    await chatService.addMessage(conversationId, { text: userInput, sender: 'user' });
+    const userMessage = await chatService.addMessage(conversationId, { text: userInput, sender: 'user' });
 
     // 2. Get conversation context
     const messages = await chatService.getMessages(conversationId);
-    const chatHistory: ChatHistory[] = messages.map((msg) => ({
+    const chatHistory: ChatHistory[] = messages.slice(-10).map((msg) => ({ // Get last 10 messages for context
       role: msg.sender,
       content: msg.text,
     }));
@@ -30,7 +30,7 @@ export async function getBotResponse(userInput: string, conversationId: string) 
     });
 
     // 4. Save bot response
-    await chatService.addMessage(conversationId, {
+    const botMessage = await chatService.addMessage(conversationId, {
       text: response.chatbotResponse,
       sender: 'bot',
     });
@@ -50,15 +50,13 @@ export async function getBotResponse(userInput: string, conversationId: string) 
     }
     
     revalidatePath(`/chat/${conversationId}`); // Revalidate chat page
-    const finalMessages = await chatService.getMessages(conversationId);
-
 
     return {
       success: true,
       data: {
         ...response,
-        userMessage: finalMessages.find(m => m.sender === 'user' && m.text === userInput)!,
-        botMessage: finalMessages.find(m => m.sender === 'bot' && m.text === response.chatbotResponse)!,
+        userMessage,
+        botMessage,
       },
     };
   } catch (error) {
