@@ -1,6 +1,6 @@
 'use client';
 import { useState, useEffect } from 'react';
-import { collection, query, orderBy, onSnapshot } from 'firebase/firestore';
+import { collection, onSnapshot } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import type { Conversation } from '@/lib/types';
 import { getOrCreateConversation } from '@/services/chatService';
@@ -11,9 +11,8 @@ export default function useConversations() {
 
   useEffect(() => {
     const conversationsRef = collection(db, 'conversations');
-    const q = query(conversationsRef, orderBy('timestamp', 'desc'));
 
-    const unsubscribe = onSnapshot(q, async (snapshot) => {
+    const unsubscribe = onSnapshot(conversationsRef, async (snapshot) => {
       if (snapshot.empty) {
          // Create the first "General" conversation if none exist
          const generalConv = await getOrCreateConversation('General', true);
@@ -23,6 +22,14 @@ export default function useConversations() {
             id: doc.id,
             ...doc.data(),
         } as Conversation));
+
+        // Sort client-side to avoid complex queries needing indexes
+        convs.sort((a, b) => {
+          const timeA = a.timestamp?.toMillis() ?? 0;
+          const timeB = b.timestamp?.toMillis() ?? 0;
+          return timeB - timeA;
+        });
+
         setConversations(convs);
       }
       setLoading(false);
