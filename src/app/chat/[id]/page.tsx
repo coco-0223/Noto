@@ -58,20 +58,7 @@ export default function ChatPage() {
 
     setMessages(prev => prev.filter(m => !idsToClear.includes(m.id)));
 
-    if (response.success && response.data) {
-       if (response.data.informationSummary) {
-          toast({
-              title: `Nota guardada`,
-              description: `Tu nota ha sido guardada en "${response.data.category}".`
-          })
-      }
-       if (response.data.reminder) {
-          toast({
-              title: `Recordatorio establecido`,
-              description: `Te recordaré sobre "${response.data.reminder.text}".`
-          })
-       }
-    } else {
+    if (!response.success) {
        toast({
         variant: "destructive",
         title: "Error",

@@ -1,12 +1,10 @@
 'use server';
 
-import { proactiveMemory } from '@/ai/flows/proactive-memory-prompt';
+import { chat } from '@/ai/flows/chat-flow';
 import { personalizeChatbotStyle } from '@/ai/flows/personalize-chatbot-style';
 import * as chatService from '@/services/chatService';
 import type { ChatHistory, Message } from '@/lib/types';
 import { revalidatePath } from 'next/cache';
-import { getDoc, doc } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
 
 export async function getBotResponse(userMessages: string[], conversationId: string) {
   try {
@@ -18,57 +16,27 @@ export async function getBotResponse(userMessages: string[], conversationId: str
     }
 
     // 2. Get conversation context
-    const conversationDoc = await getDoc(doc(db, 'conversations', conversationId));
-    const categoryId = conversationDoc.data()?.title || 'General';
-
     const recentMessages = await chatService.getMessages(conversationId, 10);
     const chatHistory: ChatHistory[] = recentMessages.map(m => ({
         role: m.sender,
         content: m.text,
     }));
 
-    // 3. Call AI flow with the combined input
-    const response = await proactiveMemory({
-      userInput: combinedInput,
-      chatHistory,
-      categoryId,
-      now: new Date().toISOString(),
-    });
+    // 3. Call the new, simple AI flow
+    const chatbotResponse = await chat(combinedInput, chatHistory);
 
     // 4. Save bot response
     const botMessage = await chatService.addMessage(conversationId, {
-      text: response.chatbotResponse,
+      text: chatbotResponse,
       sender: 'bot',
     });
     
-    // 5. Save memory if any
-    if (response.informationSummary && response.category) {
-      const createdConv = await chatService.getOrCreateConversation(response.category);
-      
-      await chatService.saveMemory({
-        summary: response.informationSummary,
-        category: response.category,
-      });
-
-      if (createdConv.id !== conversationId && response.category !== categoryId) {
-         revalidatePath('/');
-      }
-    }
-    
-    // 6. Save reminder if any
-    if (response.reminder) {
-        await chatService.addReminder({
-            ...response.reminder,
-            conversationId: conversationId,
-        });
-    }
-
     revalidatePath(`/chat/${conversationId}`);
 
+    // Return a simplified response, as we are no longer saving memories automatically.
     return {
       success: true,
       data: {
-        ...response,
         botMessage,
       },
     };
