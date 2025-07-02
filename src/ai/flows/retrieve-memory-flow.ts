@@ -10,7 +10,8 @@
 
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
-import { searchMemories } from '@/services/chatService';
+import { searchMemories, searchReminders } from '@/services/chatService';
+import { Timestamp } from 'firebase/firestore';
 
 const RetrieveMemoryInputSchema = z.object({
   query: z.string().describe('The query to retrieve information about.'),
@@ -26,7 +27,7 @@ export type RetrieveMemoryOutput = z.infer<typeof RetrieveMemoryOutputSchema>;
 const searchMemoryTool = ai.defineTool(
   {
     name: 'searchMemoryTool',
-    description: 'Searches the user\'s stored memories for relevant information to answer their query.',
+    description: 'Searches the user\'s stored memories for relevant information like general notes, ideas, recipes etc. to answer their query.',
     inputSchema: z.object({
         query: z.string().optional().describe('The search query. Can be empty to retrieve recent memories.')
     }),
@@ -41,6 +42,23 @@ const searchMemoryTool = ai.defineTool(
   }
 );
 
+const searchRemindersTool = ai.defineTool(
+    {
+      name: 'searchRemindersTool',
+      description: 'Searches the user\'s stored reminders for upcoming events or tasks.',
+      inputSchema: z.object({}), // No input needed
+      outputSchema: z.array(z.object({
+          text: z.string(),
+          triggerAt: z.string().datetime(),
+      })),
+    },
+    async () => {
+      // We'll map the triggerAt to an ISO string for the AI
+      const reminders = await searchReminders();
+      return reminders.map(r => ({ text: r.text, triggerAt: (r.triggerAt as Timestamp).toDate().toISOString() }));
+    }
+  );
+
 
 export async function retrieveMemory(input: RetrieveMemoryInput): Promise<RetrieveMemoryOutput> {
   return retrieveMemoryFlow(input);
@@ -48,18 +66,19 @@ export async function retrieveMemory(input: RetrieveMemoryInput): Promise<Retrie
 
 const prompt = ai.definePrompt({
   name: 'retrieveMemoryPrompt',
-  tools: [searchMemoryTool],
+  tools: [searchMemoryTool, searchRemindersTool],
   input: {schema: RetrieveMemoryInputSchema},
   output: {schema: RetrieveMemoryOutputSchema},
-  prompt: `You are a helpful chatbot that remembers information provided by the user.
+  prompt: `You are a helpful chatbot that remembers information provided by the user. The user is asking you to retrieve some information. Here is the user's query:
+"{{query}}"
 
-  The user is asking you to retrieve some information. Here is the user's query:
-  "{{query}}"
+You have two tools to find information:
+1. \`searchMemoryTool\`: Use this to search for general notes, ideas, recipes, etc.
+2. \`searchRemindersTool\`: Use this specifically when the user asks about their reminders, upcoming tasks, or scheduled events.
 
-  Use the searchMemoryTool to find relevant memories. If the user's query is vague (e.g., "what's up?"), you can search with an empty query to get the most recent memories as context.
+Based on the user's query, decide which tool is appropriate. If the query is vague (e.g., "what's up?"), you can use \`searchMemoryTool\` with an empty query to get recent context.
 
-  Based on the search results, formulate a natural language response to the user. If you cannot find any relevant information, respond that you cannot find it.
-  `,
+Formulate a natural language response based on the search results. If you cannot find any relevant information, respond that you cannot find it.`,
 });
 
 const retrieveMemoryFlow = ai.defineFlow(

@@ -12,25 +12,10 @@ import {
     limit,
     doc,
     updateDoc,
-    writeBatch,
     Timestamp,
     getDoc,
     setDoc,
 } from 'firebase/firestore';
-
-const APP_STATE_DOC_REF = doc(db, 'appState', 'singleton');
-
-export async function getAppState(): Promise<any> {
-    const docSnap = await getDoc(APP_STATE_DOC_REF);
-    if (docSnap.exists()) {
-        return docSnap.data();
-    }
-    return null;
-}
-
-export async function updateAppState(data: any): Promise<void> {
-    await setDoc(APP_STATE_DOC_REF, data, { merge: true });
-}
 
 function docToConversation(doc: any): Conversation {
     const data = doc.data();
@@ -124,10 +109,9 @@ export async function addReminder(reminder: { text: string, remindAt: string, co
     return docRef.id;
 }
 
-
-export async function getDueReminders(): Promise<Reminder[]> {
+export async function searchReminders(): Promise<Reminder[]> {
     const remindersRef = collection(db, 'reminders');
-    const q = query(remindersRef, where('processed', '==', false), where('triggerAt', '<=', new Date()));
+    const q = query(remindersRef, where('processed', '==', false), orderBy('triggerAt', 'asc'));
     const snapshot = await getDocs(q);
     
     return snapshot.docs.map(doc => ({
@@ -135,17 +119,6 @@ export async function getDueReminders(): Promise<Reminder[]> {
         ...doc.data()
     } as Reminder));
 }
-
-export async function markRemindersAsProcessed(reminderIds: string[]): Promise<void> {
-    if (reminderIds.length === 0) return;
-    const batch = writeBatch(db);
-    reminderIds.forEach(id => {
-        const reminderRef = doc(db, 'reminders', id);
-        batch.update(reminderRef, { processed: true });
-    });
-    await batch.commit();
-}
-
 
 export async function searchMemories(query?: string): Promise<Memory[]> {
     const memoriesRef = collection(db, 'memories');
