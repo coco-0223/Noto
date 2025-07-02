@@ -94,7 +94,7 @@ export async function getOrCreateConversation(category: string, pinned = false):
     return {
         id: docRef.id,
         ...newConvData,
-        timestamp: new Date() as any // Optimistic
+        timestamp: Timestamp.now()
     };
 }
 
@@ -137,4 +137,35 @@ export async function searchMemories(query?: string): Promise<Memory[]> {
         const snapshot = await getDocs(q);
         return snapshot.docs.map(doc => ({id: doc.id, ...doc.data()} as Memory));
     }
+}
+
+
+export async function getDueReminders(): Promise<Reminder[]> {
+    const now = Timestamp.now();
+    const remindersRef = collection(db, 'reminders');
+    const q = query(remindersRef, where('processed', '==', false), where('triggerAt', '<=', now));
+    const snapshot = await getDocs(q);
+    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Reminder));
+}
+
+export async function markRemindersAsProcessed(reminderIds: string[]): Promise<void> {
+    const promises = reminderIds.map(id => {
+        const reminderRef = doc(db, 'reminders', id);
+        return updateDoc(reminderRef, { processed: true });
+    });
+    await Promise.all(promises);
+}
+
+export async function getAppState() {
+    const appStateRef = doc(db, 'app_state', 'singleton');
+    const docSnap = await getDoc(appStateRef);
+    if (docSnap.exists()) {
+        return docSnap.data();
+    }
+    return null;
+}
+
+export async function updateAppState(data: any) {
+    const appStateRef = doc(db, 'app_state', 'singleton');
+    await setDoc(appStateRef, data, { merge: true });
 }
