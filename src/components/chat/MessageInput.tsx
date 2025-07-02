@@ -48,7 +48,6 @@ const MessageInput = forwardRef<HTMLTextAreaElement, Props>(({ onSubmit, isLoadi
           placeholder="Escribe un mensaje..."
           className="flex-1 resize-none min-h-[40px] max-h-36"
           rows={1}
-          disabled={isLoading}
         />
         <Button
           type="submit"

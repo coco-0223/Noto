@@ -25,7 +25,7 @@ export type ProactiveMemoryInput = z.infer<typeof ProactiveMemoryInputSchema>;
 const ProactiveMemoryOutputSchema = z.object({
   chatbotResponse: z.string().describe('The chatbot response to the user input.'),
   informationSummary: z.string().describe('A concise, factual summary of the information to be stored. Should be empty if the user is asking a question or making small talk.'),
-  category: z.enum(['General', 'Ideas', 'Tareas', 'Recetas', 'Eventos', 'Cumpleaños', 'Recordatorios', 'Gastos']).describe('The category for this information. Defaults to General.'),
+  category: z.enum(['General', 'Ideas', 'Tareas', 'Recetas', 'Eventos', 'Cumpleaños', 'Recordatorios', 'Gastos']).optional().describe("The category for this information. Only set when saving new information."),
   reminder: z.object({
       text: z.string().describe("The text content of the reminder."),
       remindAt: z.string().datetime().describe("The future date and time for the reminder in ISO 8601 format.")
@@ -88,14 +88,18 @@ Your abilities are:
 2.  **Retrieving Information:** When the user asks a question or wants to recall something (e.g., "what are my reminders?", "what was that pizza recipe?"), you must use your tools to find the answer.
     - Use \`searchMemoryTool\` for general information.
     - Use \`searchRemindersTool\` for reminders.
-    - Formulate the retrieved information into a natural 'chatbotResponse'. For retrievals, 'informationSummary' and 'reminder' must be empty.
+    - Formulate the retrieved information into a natural 'chatbotResponse'. For retrievals, 'informationSummary', 'category' and 'reminder' must be empty.
 3.  **Clarifying Ambiguity:** If the user provides a piece of information that *could* be important but isn't a clear command to save (e.g., "I spent 2800 on a beer," or "My friend's birthday is in June"), you must ask for clarification.
     - Your \`chatbotResponse\` should be a question like, "Entendido. ¿Es algo que debería recordar o solo me lo cuentas?".
-    - In this case, \`informationSummary\` and \`reminder\` must be empty.
-4.  **Handling Clarification Response:** If your last message was a clarification question (like the one above) and the user responds affirmatively (e.g., "Sí, recuérdalo", "Guárdalo"), you MUST then save the information from the user's *previous* message (the one before your question).
-    - Summarize the original information (e.g., "Spent 2800 on a beer"), categorize it appropriately (e.g., 'Gastos' or 'General'), and fill the \`informationSummary\` and \`category\` fields.
-    - Your \`chatbotResponse\` should be a confirmation like, "De acuerdo, lo he anotado. Si quieres, la próxima vez puedes darme más contexto para encontrarlo fácilmente."
-5.  **Conversing:** For pure small talk that has no potential information to save (like "hello", "how are you?", "thanks"), just provide a friendly, conversational \`chatbotResponse\`. \`informationSummary\` and \`reminder\` must be empty.
+    - In this case, \`informationSummary\`, \`category\`, and \`reminder\` must be empty.
+4.  **Handling Clarification (Step 1):** If your last message was the clarification question from step 3 and the user responds affirmatively (e.g., "Sí, recuérdalo"), you must ask for more context.
+    - Your \`chatbotResponse\` should be a question like: "De acuerdo. Si quieres que guarde esta información, dame un poco más de contexto o dime en qué categoría la pongo (por ejemplo, Gastos, Ideas, etc.) para que sea más fácil encontrarla después."
+    - In this case, \`informationSummary\`, \`category\`, and \`reminder\` must be empty.
+5.  **Handling Clarification (Step 2):** If the user's input seems to be a response to your request for context (from step 4), you must save the original piece of information from **three turns ago** in the history.
+    - Use the new context to summarize and categorize the information.
+    - For example, if the history is: User: "I spent 2800 on a beer", Bot: "...should I remember?", User: "Yes", Bot: "OK, give me context...", User: "It was for a work dinner, save in expenses", you should save "Spent 2800 on a beer for a work dinner" in the 'Gastos' category.
+    - Fill \`informationSummary\` and \`category\`. Your \`chatbotResponse\` should be a brief confirmation, like "¡Hecho! Lo he guardado."
+6.  **Conversing:** For pure small talk that has no potential information to save (like "hello", "how are you?", "thanks"), just provide a friendly, conversational \`chatbotResponse\`. \`informationSummary\`, \`category\`, and \`reminder\` must be empty.
 
 The user is currently in the '{{categoryId}}' chat category.
 
