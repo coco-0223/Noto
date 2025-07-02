@@ -136,17 +136,21 @@ export async function searchReminders(): Promise<Reminder[]> {
     } as Reminder));
 }
 
-export async function searchMemories(query?: string): Promise<Memory[]> {
+export async function searchMemories(queryText?: string): Promise<Memory[]> {
     const memoriesRef = collection(db, C.MEMORIES);
     let q;
-    if (query && query.trim() !== '') {
+    if (queryText && queryText.trim() !== '') {
         // Firestore doesn't support case-insensitive search natively. A real app would use a 
         // third-party search service like Algolia or Typesense, or store a lowercase version of the summary.
         // For this demo, we'll fetch and filter, which is not scalable.
         q = query(memoriesRef, orderBy('createdAt', 'desc'));
         const snapshot = await getDocs(q);
+        const lowerCaseQuery = queryText.toLowerCase();
         return snapshot.docs.map(doc => ({id: doc.id, ...doc.data()} as Memory))
-               .filter(m => m.summary.toLowerCase().includes(query.toLowerCase()))
+               .filter(m => 
+                   m.summary.toLowerCase().includes(lowerCaseQuery) || 
+                   m.category.toLowerCase().includes(lowerCaseQuery)
+                )
                .slice(0, 20);
     } else {
         q = query(memoriesRef, orderBy('createdAt', 'desc'), limit(20));
