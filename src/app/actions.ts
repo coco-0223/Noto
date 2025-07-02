@@ -42,7 +42,7 @@ export async function getBotResponse(userMessages: string[], conversationId: str
     });
     
     // 5. Save memory if any
-    if (response.informationSummary) {
+    if (response.informationSummary && response.category) {
       const createdConv = await chatService.getOrCreateConversation(response.category);
       
       await chatService.saveMemory({

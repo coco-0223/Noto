@@ -24,7 +24,7 @@ export type ProactiveMemoryInput = z.infer<typeof ProactiveMemoryInputSchema>;
 
 const ProactiveMemoryOutputSchema = z.object({
   chatbotResponse: z.string().describe('The chatbot response to the user input.'),
-  informationSummary: z.string().describe('A concise, factual summary of the information to be stored. Should be empty if the user is asking a question or making small talk.'),
+  informationSummary: z.string().optional().describe('A concise, factual summary of the information to be stored. This should only be set when the AI is certain it needs to save information.'),
   category: z.enum(['General', 'Ideas', 'Tareas', 'Recetas', 'Eventos', 'Cumpleaños', 'Recordatorios', 'Gastos']).optional().describe("The category for this information. Only set when saving new information."),
   reminder: z.object({
       text: z.string().describe("The text content of the reminder."),
@@ -84,7 +84,7 @@ const proactiveMemoryPrompt = ai.definePrompt({
 Your primary goal is to help the user save and retrieve information. Follow these rules in order:
 
 **Rule 1: Retrieve Information**
-If the user's query is a question asking to retrieve information (e.g., "what are my reminders?"), use your tools (\`searchMemoryTool\`, \`searchRemindersTool\`). Formulate the result into \`chatbotResponse\`. All other output fields must be empty.
+If the user's query is a question asking to retrieve information (e.g., "what are my reminders?"), use your tools (\`searchMemoryTool\`, \`searchRemindersTool\`). Formulate the result into \`chatbotResponse\`. Do NOT set any other output fields.
 
 **Rule 2: Save Explicit Information**
 If the user gives a clear command to save something (e.g., "remind me to...", "save this idea..."), extract the data.
@@ -94,12 +94,12 @@ If the user gives a clear command to save something (e.g., "remind me to...", "s
 **Rule 3: Handle Ambiguous Information -> Start Clarification**
 If the user says something that might be important but is not a command (e.g., "I spent 2800 on a beer"), your *only* possible action is to ask for clarification.
 - Your \`chatbotResponse\` **MUST** be: "Entendido. ¿Es algo que debería recordar o solo me lo cuentas?".
-- All other output fields **MUST** be empty.
+- Do NOT set any other output fields.
 
 **Rule 4: Handle User Confirmation -> Ask for Context**
 If your *immediately preceding* response was the question from Rule 3, and the user now responds affirmatively (e.g., "sí", "recuérdalo"), your *only* possible action is to ask for more context.
 - Your \`chatbotResponse\` **MUST** be: "De acuerdo. Si quieres que guarde esta información, dame un poco más de contexto o dime en qué categoría la pongo (por ejemplo, Gastos, Ideas, etc.) para que sea más fácil encontrarla después."
-- All other output fields **MUST** be empty.
+- Do NOT set any other output fields.
 
 **Rule 5: Handle User Context -> Save the Original Information**
 If your *immediately preceding* response was the request for context from Rule 4, the user's current input ("{{userInput}}") is the context for the information they gave you two turns ago.
@@ -110,7 +110,7 @@ If your *immediately preceding* response was the request for context from Rule 4
 - Your \`chatbotResponse\` **MUST** be a brief confirmation, like "¡Hecho! Lo he guardado."
 
 **Rule 6: Handle Small Talk or "No, don't save"**
-If the input is simple conversation ("hello", "thanks") or if the user responds negatively to your clarification question from Rule 3 ("no, solo te contaba"), just provide a friendly, conversational \`chatbotResponse\`. All other output fields **MUST** be empty.
+If the input is simple conversation ("hello", "jajaja", "thanks") or if the user responds negatively to your clarification question from Rule 3 ("no, solo te contaba"), just provide a friendly, conversational \`chatbotResponse\`. Do NOT set the \`informationSummary\`, \`category\`, or \`reminder\` fields.
 
 ---
 Current Chat Context: Category '{{categoryId}}'
