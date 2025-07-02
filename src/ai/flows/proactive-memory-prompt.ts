@@ -1,14 +1,16 @@
 'use server';
 /**
- * @fileOverview A proactive memory AI agent that proactively asks the user about their day and records important information.
+ * @fileOverview A proactive memory AI agent that can save, retrieve, and chat with the user.
  *
- * - proactiveMemory - A function that handles the proactive memory process.
+ * - proactiveMemory - A function that handles the main chat interaction.
  * - ProactiveMemoryInput - The input type for the proactiveMemory function.
  * - ProactiveMemoryOutput - The return type for the proactiveMemory function.
  */
 
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
+import { searchMemories, searchReminders } from '@/services/chatService';
+import { Timestamp } from 'firebase/firestore';
 
 const ProactiveMemoryInputSchema = z.object({
   userInput: z
@@ -22,7 +24,7 @@ export type ProactiveMemoryInput = z.infer<typeof ProactiveMemoryInputSchema>;
 
 const ProactiveMemoryOutputSchema = z.object({
   chatbotResponse: z.string().describe('The chatbot response to the user input.'),
-  informationSummary: z.string().describe('A concise, factual summary of the information to be stored. Empty if none.'),
+  informationSummary: z.string().describe('A concise, factual summary of the information to be stored. Should be empty if the user is asking a question or making small talk.'),
   category: z.enum(['General', 'Ideas', 'Tareas', 'Recetas', 'Eventos', 'Cumpleaños', 'Recordatorios']).describe('The category for this information. Defaults to General.'),
   reminder: z.object({
       text: z.string().describe("The text content of the reminder."),
@@ -31,21 +33,63 @@ const ProactiveMemoryOutputSchema = z.object({
 });
 export type ProactiveMemoryOutput = z.infer<typeof ProactiveMemoryOutputSchema>;
 
+
+const searchMemoryTool = ai.defineTool(
+  {
+    name: 'searchMemoryTool',
+    description: 'Searches the user\'s stored memories for relevant information like general notes, ideas, recipes etc. to answer their query.',
+    inputSchema: z.object({
+        query: z.string().optional().describe('The search query. Can be empty to retrieve recent memories.')
+    }),
+    outputSchema: z.array(z.object({
+        summary: z.string(),
+        category: z.string(),
+        createdAt: z.string(),
+    })),
+  },
+  async ({ query }) => {
+    return searchMemories(query);
+  }
+);
+
+const searchRemindersTool = ai.defineTool(
+    {
+      name: 'searchRemindersTool',
+      description: 'Searches the user\'s stored reminders for upcoming events or tasks.',
+      inputSchema: z.object({}), // No input needed
+      outputSchema: z.array(z.object({
+          text: z.string(),
+          triggerAt: z.string().datetime(),
+      })),
+    },
+    async () => {
+      // We'll map the triggerAt to an ISO string for the AI
+      const reminders = await searchReminders();
+      return reminders.map(r => ({ text: r.text, triggerAt: (r.triggerAt as Timestamp).toDate().toISOString() }));
+    }
+  );
+
+
 export async function proactiveMemory(input: ProactiveMemoryInput): Promise<ProactiveMemoryOutput> {
   return proactiveMemoryFlow(input);
 }
 
 const proactiveMemoryPrompt = ai.definePrompt({
   name: 'proactiveMemoryPrompt',
+  tools: [searchMemoryTool, searchRemindersTool],
   input: {schema: ProactiveMemoryInputSchema},
   output: {schema: ProactiveMemoryOutputSchema},
-  prompt: `You are a proactive chatbot assistant. Your primary goal is to identify and save important information from the user's input, and secondarily to be a conversational partner. The current time is {{now}}.
+  prompt: `You are a helpful and proactive chatbot assistant named Noto. The current time is {{now}}.
 
-- When the user provides information that should be saved (like a recipe, a task, an event, or an idea), your main job is to extract it, summarize it for storage, and categorize it. Your 'chatbotResponse' should be a brief confirmation. For example: "Anotado en 'Recetas'." or "OK, lo agrego a tus tareas."
-- If the user's request involves a future action or reminder (e.g., 'remind me tomorrow at 5pm', 'in 2 hours'), identify the task and the exact time it should be triggered. Set 'reminder.text' to the content of the reminder and 'reminder.remindAt' to the calculated date and time in ISO 8601 format. For these, your chatbotResponse should confirm the reminder, like "OK, te lo recordaré." and you MUST set the 'category' to 'Recordatorios'.
-- Only when the user is making small talk or asking a direct question that does not involve saving information should you provide a more conversational 'chatbotResponse'.
-- Do not use external information from the internet.
-- Never ask for personally identifying information.
+Your abilities are:
+1.  **Saving Information:** When the user provides new information (like an idea, task, recipe, or asks for a reminder), you must extract it, summarize it, and categorize it.
+    - For reminders, you MUST set the 'reminder' field with the text and the exact ISO 8601 time. Your 'chatbotResponse' should be a confirmation like "OK, te lo recordaré."
+    - For other memories, fill 'informationSummary' and 'category'. Your 'chatbotResponse' should be a brief confirmation, like "OK, lo he anotado en tus ideas."
+2.  **Retrieving Information:** When the user asks a question or wants to recall something (e.g., "what are my reminders?", "what was that pizza recipe?"), you must use your tools to find the answer.
+    - Use \`searchMemoryTool\` for general information.
+    - Use \`searchRemindersTool\` for reminders.
+    - Formulate the retrieved information into a natural 'chatbotResponse'. For retrievals, 'informationSummary' and 'reminder' must be empty.
+3.  **Conversing:** For small talk or questions not related to saving/retrieving, just provide a friendly, conversational 'chatbotResponse'. In this case, 'informationSummary' and 'reminder' must be empty.
 
 The user is currently in the '{{categoryId}}' chat category.
 
@@ -58,7 +102,7 @@ Here's the chat history so far:
 
 User Input: "{{userInput}}"
 
-Based on the user input, generate the response, summary, category, and reminder if applicable.
+Based on the input, decide whether to save, retrieve, or just chat, and generate the appropriate response and data.
   `,
 });
 

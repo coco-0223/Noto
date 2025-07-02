@@ -11,7 +11,7 @@ export default function useConversations() {
 
   useEffect(() => {
     const conversationsRef = collection(db, 'conversations');
-    const q = query(conversationsRef, orderBy('pinned', 'desc'), orderBy('timestamp', 'desc'));
+    const q = query(conversationsRef, orderBy('timestamp', 'desc'));
 
     const unsubscribe = onSnapshot(q, async (snapshot) => {
       if (snapshot.empty) {
