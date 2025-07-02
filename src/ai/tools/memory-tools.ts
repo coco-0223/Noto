@@ -22,3 +22,22 @@ export const saveNote = ai.defineTool(
         return `Note saved successfully in category: ${category}.`;
     }
 );
+
+export const searchMyNotes = ai.defineTool(
+    {
+        name: 'searchMyNotes',
+        description: 'Searches and retrieves the user\'s saved notes. Use this tool when the user asks a question about something they might have mentioned in the past, such as "cuánto gasté", "qué dije sobre...", "cuáles son mis gastos", or "búsca en mis notas".',
+        inputSchema: z.object({
+            query: z.string().describe('The search term to look for in the notes. This could be a keyword like "papas" or a category like "gastos".'),
+        }),
+        outputSchema: z.string(),
+    },
+    async ({ query }) => {
+        const memories = await chatService.searchMemories(query);
+        if (memories.length === 0) {
+            return "No se encontraron notas que coincidan con tu búsqueda.";
+        }
+        const results = memories.map(m => `- ${m.summary} (Categoría: ${m.category})`).join('\n');
+        return `He encontrado las siguientes notas:\n${results}`;
+    }
+);
