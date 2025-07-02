@@ -15,7 +15,22 @@ import {
     writeBatch,
     Timestamp,
     getDoc,
+    setDoc,
 } from 'firebase/firestore';
+
+const APP_STATE_DOC_REF = doc(db, 'appState', 'singleton');
+
+export async function getAppState(): Promise<any> {
+    const docSnap = await getDoc(APP_STATE_DOC_REF);
+    if (docSnap.exists()) {
+        return docSnap.data();
+    }
+    return null;
+}
+
+export async function updateAppState(data: any): Promise<void> {
+    await setDoc(APP_STATE_DOC_REF, data, { merge: true });
+}
 
 function docToConversation(doc: any): Conversation {
     const data = doc.data();
