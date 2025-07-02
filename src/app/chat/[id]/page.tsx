@@ -35,18 +35,20 @@ export default function ChatPage() {
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const debounceTimer = useRef<NodeJS.Timeout>();
   const messageQueue = useRef<string[]>([]);
+  const optimisticIds = useRef<string[]>([]);
   
   const displayIcon = chatInfo?.title ? categoryIcons[chatInfo.title] || <MessageSquare className="w-5 h-5" /> : <Loader2 className="w-5 h-5 animate-spin" />;
   const displayTitle = chatInfo?.title || 'Cargando...';
 
   const processQueue = async () => {
-    // Do not process if the queue is empty or a request is already in flight.
     if (messageQueue.current.length === 0 || isSending) {
         return;
     }
 
     const messagesToProcess = [...messageQueue.current];
-    messageQueue.current = []; // Clear the queue for this batch
+    const idsToClear = [...optimisticIds.current];
+    messageQueue.current = [];
+    optimisticIds.current = [];
 
     setIsSending(true);
 
@@ -54,9 +56,7 @@ export default function ChatPage() {
 
     setIsSending(false);
 
-    // The listener will update the list with the real messages from the DB.
-    // We just need to remove the optimistic messages we added for this batch.
-    setMessages(prev => prev.filter(m => !m.id.startsWith('optimistic-')));
+    setMessages(prev => prev.filter(m => !idsToClear.includes(m.id)));
 
     if (response.success && response.data) {
        if (response.data.informationSummary) {
@@ -80,8 +80,6 @@ export default function ChatPage() {
     }
     inputRef.current?.focus();
 
-    // After processing, check if new messages were queued up while we were busy
-    // and if so, trigger another processing cycle.
     if (messageQueue.current.length > 0) {
         if (debounceTimer.current) clearTimeout(debounceTimer.current);
         debounceTimer.current = setTimeout(processQueue, 2000);
@@ -89,29 +87,26 @@ export default function ChatPage() {
   }
 
   const handleSendMessage = async (input: string) => {
-    // Always clear the existing timer on a new message to reset the debounce period.
     if (debounceTimer.current) {
         clearTimeout(debounceTimer.current);
     }
     
-    // Add the new message to our queue.
+    const optimisticId = `optimistic-${Date.now()}`;
+    optimisticIds.current.push(optimisticId);
     messageQueue.current.push(input);
 
-    // Add an optimistic message to the UI for immediate feedback.
     const optimisticMessage: Message = {
-      id: `optimistic-${Date.now()}`,
+      id: optimisticId,
       text: input,
       sender: 'user',
       timestamp: new Date().toISOString(),
     };
     setMessages((prev) => [...prev, optimisticMessage]);
 
-    // Set a new timer. After 2 seconds of inactivity, process the whole queue.
     debounceTimer.current = setTimeout(processQueue, 2000);
   };
 
   const handleFeedback = (messageId: string, feedback: 'liked' | 'disliked') => {
-    // This would update the document in Firestore in a real app
     setMessages(messages => messages.map(msg => 
       msg.id === messageId ? { ...msg, feedback } : msg
     ));
@@ -122,10 +117,8 @@ export default function ChatPage() {
   }
 
   useEffect(() => {
-    // Focus input on initial load
     inputRef.current?.focus();
     
-    // Cleanup timer on component unmount
     return () => {
       if (debounceTimer.current) clearTimeout(debounceTimer.current);
     }
