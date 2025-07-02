@@ -9,9 +9,6 @@ import MessageInput from '@/components/chat/MessageInput';
 import { useToast } from '@/hooks/use-toast';
 import useChatMessages from '@/hooks/useChatMessages';
 import useConversationInfo from '@/hooks/useConversationInfo';
-import { doc, getDoc } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
-
 import { BookText, Cake, Calendar, Lightbulb, ListTodo, MessageSquare, Loader2, CreditCard } from 'lucide-react';
 
 const categoryIcons: {[key: string]: React.ReactNode} = {
@@ -42,21 +39,14 @@ export default function ChatPage() {
   const displayIcon = chatInfo?.title ? categoryIcons[chatInfo.title] || <MessageSquare className="w-5 h-5" /> : <Loader2 className="w-5 h-5 animate-spin" />;
   const displayTitle = chatInfo?.title || 'Cargando...';
 
-  useEffect(() => {
-    // Focus input on initial load
-    inputRef.current?.focus();
-    
-    // Cleanup timer on component unmount
-    return () => {
-      if (debounceTimer.current) clearTimeout(debounceTimer.current);
+  const processQueue = async () => {
+    // Do not process if the queue is empty or a request is already in flight.
+    if (messageQueue.current.length === 0 || isSending) {
+        return;
     }
-  }, []);
 
-  const processMessageQueue = async () => {
-    if (messageQueue.current.length === 0) return;
-    
     const messagesToProcess = [...messageQueue.current];
-    messageQueue.current = [];
+    messageQueue.current = []; // Clear the queue for this batch
 
     setIsSending(true);
 
@@ -64,8 +54,8 @@ export default function ChatPage() {
 
     setIsSending(false);
 
-    // The listener in useChatMessages will handle updating the message list from Firestore.
-    // We just need to remove our optimistic messages.
+    // The listener will update the list with the real messages from the DB.
+    // We just need to remove the optimistic messages we added for this batch.
     setMessages(prev => prev.filter(m => !m.id.startsWith('optimistic-')));
 
     if (response.success && response.data) {
@@ -89,26 +79,35 @@ export default function ChatPage() {
       });
     }
     inputRef.current?.focus();
+
+    // After processing, check if new messages were queued up while we were busy
+    // and if so, trigger another processing cycle.
+    if (messageQueue.current.length > 0) {
+        if (debounceTimer.current) clearTimeout(debounceTimer.current);
+        debounceTimer.current = setTimeout(processQueue, 2000);
+    }
   }
 
-
   const handleSendMessage = async (input: string) => {
+    // Always clear the existing timer on a new message to reset the debounce period.
     if (debounceTimer.current) {
         clearTimeout(debounceTimer.current);
     }
     
+    // Add the new message to our queue.
     messageQueue.current.push(input);
 
+    // Add an optimistic message to the UI for immediate feedback.
     const optimisticMessage: Message = {
       id: `optimistic-${Date.now()}`,
       text: input,
       sender: 'user',
       timestamp: new Date().toISOString(),
     };
-    
     setMessages((prev) => [...prev, optimisticMessage]);
 
-    debounceTimer.current = setTimeout(processMessageQueue, 2000);
+    // Set a new timer. After 2 seconds of inactivity, process the whole queue.
+    debounceTimer.current = setTimeout(processQueue, 2000);
   };
 
   const handleFeedback = (messageId: string, feedback: 'liked' | 'disliked') => {
@@ -122,10 +121,20 @@ export default function ChatPage() {
     })
   }
 
+  useEffect(() => {
+    // Focus input on initial load
+    inputRef.current?.focus();
+    
+    // Cleanup timer on component unmount
+    return () => {
+      if (debounceTimer.current) clearTimeout(debounceTimer.current);
+    }
+  }, []);
+
   return (
     <div className="flex flex-col h-screen bg-background text-foreground max-w-4xl mx-auto border-x shadow-2xl">
       <ChatHeader title={displayTitle} icon={displayIcon} />
-      <MessageList messages={messages} isLoading={messagesLoading || isSending} onFeedback={handleFeedback} />
+      <MessageList messages={messages} isLoading={isSending} onFeedback={handleFeedback} />
       <MessageInput ref={inputRef} onSubmit={handleSendMessage} isLoading={isSending} />
     </div>
   );

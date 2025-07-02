@@ -15,7 +15,9 @@ const MessageInput = forwardRef<HTMLTextAreaElement, Props>(({ onSubmit, isLoadi
 
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
-    if (!input.trim() || isLoading) return;
+    // Allow submitting messages even if the bot is currently responding.
+    // The queueing logic in the parent component will handle the flow.
+    if (!input.trim()) return;
     onSubmit(input.trim());
     setInput('');
   };
@@ -53,7 +55,7 @@ const MessageInput = forwardRef<HTMLTextAreaElement, Props>(({ onSubmit, isLoadi
           type="submit"
           size="icon"
           className="shrink-0 rounded-full"
-          disabled={!input.trim() || isLoading}
+          disabled={!input.trim()}
           aria-label="Send message"
         >
           <Send className="w-5 h-5" />
