@@ -1,5 +1,5 @@
 'use client';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useParams } from 'next/navigation';
 import type { Message } from '@/lib/types';
 import { getBotResponse } from '@/app/actions';
@@ -34,30 +34,37 @@ export default function ChatPage() {
 
   const [isSending, setIsSending] = useState(false);
   const { toast } = useToast();
+  const inputRef = useRef<HTMLTextAreaElement>(null);
+  const debounceTimer = useRef<NodeJS.Timeout>();
+  const messageQueue = useRef<string[]>([]);
   
   const displayIcon = chatInfo?.title ? categoryIcons[chatInfo.title] || <MessageSquare className="w-5 h-5" /> : <Loader2 className="w-5 h-5 animate-spin" />;
   const displayTitle = chatInfo?.title || 'Cargando...';
 
+  useEffect(() => {
+    // Cleanup timer on component unmount
+    return () => {
+      if (debounceTimer.current) clearTimeout(debounceTimer.current);
+    }
+  }, []);
 
-  const handleSendMessage = async (input: string) => {
-    setIsSending(true);
-    const optimisticMessage: Message = {
-      id: Date.now().toString(),
-      text: input,
-      sender: 'user',
-      timestamp: new Date().toISOString(),
-    };
+  const processMessageQueue = async () => {
+    if (messageQueue.current.length === 0) return;
     
-    setMessages((prev) => [...prev, optimisticMessage]);
+    const messagesToProcess = [...messageQueue.current];
+    messageQueue.current = [];
 
-    const response = await getBotResponse(input, chatId);
+    setIsSending(true);
+
+    const response = await getBotResponse(messagesToProcess, chatId);
 
     setIsSending(false);
 
-    if (response.success && response.data) {
-       // Optimistic message will be replaced by the real-time listener
-       setMessages(prev => prev.filter(m => m.id !== optimisticMessage.id));
+    // The listener in useChatMessages will handle updating the message list from Firestore.
+    // We just need to remove our optimistic messages.
+    setMessages(prev => prev.filter(m => !m.id.startsWith('optimistic-')));
 
+    if (response.success && response.data) {
        if (response.data.informationSummary) {
           toast({
               title: `Nota guardada`,
@@ -71,7 +78,6 @@ export default function ChatPage() {
           })
        }
     } else {
-      setMessages(prev => prev.filter(m => m.id !== optimisticMessage.id));
       const errorBotMessage: Message = {
         id: Date.now().toString(),
         text: 'Lo siento, algo salió mal. Por favor, inténtalo de nuevo.',
@@ -85,6 +91,27 @@ export default function ChatPage() {
         description: response.error,
       });
     }
+    inputRef.current?.focus();
+  }
+
+
+  const handleSendMessage = async (input: string) => {
+    if (debounceTimer.current) {
+        clearTimeout(debounceTimer.current);
+    }
+    
+    messageQueue.current.push(input);
+
+    const optimisticMessage: Message = {
+      id: `optimistic-${Date.now()}`,
+      text: input,
+      sender: 'user',
+      timestamp: new Date().toISOString(),
+    };
+    
+    setMessages((prev) => [...prev, optimisticMessage]);
+
+    debounceTimer.current = setTimeout(processMessageQueue, 2000);
   };
 
   const handleFeedback = (messageId: string, feedback: 'liked' | 'disliked') => {
@@ -102,7 +129,7 @@ export default function ChatPage() {
     <div className="flex flex-col h-screen bg-background text-foreground max-w-4xl mx-auto border-x shadow-2xl">
       <ChatHeader title={displayTitle} icon={displayIcon} />
       <MessageList messages={messages} isLoading={messagesLoading || isSending} onFeedback={handleFeedback} />
-      <MessageInput onSubmit={handleSendMessage} isLoading={isSending} />
+      <MessageInput ref={inputRef} onSubmit={handleSendMessage} isLoading={isSending} />
     </div>
   );
 }

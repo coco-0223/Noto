@@ -3,16 +3,15 @@
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Send } from 'lucide-react';
-import { useState, useRef, type FormEvent } from 'react';
+import { useState, type FormEvent, forwardRef } from 'react';
 
 type Props = {
   onSubmit: (input: string) => void;
   isLoading: boolean;
 };
 
-export default function MessageInput({ onSubmit, isLoading }: Props) {
+const MessageInput = forwardRef<HTMLTextAreaElement, Props>(({ onSubmit, isLoading }, ref) => {
   const [input, setInput] = useState('');
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
@@ -29,9 +28,10 @@ export default function MessageInput({ onSubmit, isLoading }: Props) {
   }
   
   const handleInput = (e: React.FormEvent<HTMLTextAreaElement>) => {
-    if (textareaRef.current) {
-      textareaRef.current.style.height = 'auto';
-      textareaRef.current.style.height = `${textareaRef.current.scrollHeight}px`;
+    const textarea = e.currentTarget;
+    if (textarea) {
+        textarea.style.height = 'auto';
+        textarea.style.height = `${textarea.scrollHeight}px`;
     }
   };
 
@@ -40,7 +40,7 @@ export default function MessageInput({ onSubmit, isLoading }: Props) {
     <div className="p-2 border-t bg-secondary/50">
       <form onSubmit={handleSubmit} className="flex items-end gap-2">
         <Textarea
-          ref={textareaRef}
+          ref={ref}
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={handleKeyDown}
@@ -62,4 +62,6 @@ export default function MessageInput({ onSubmit, isLoading }: Props) {
       </form>
     </div>
   );
-}
+});
+MessageInput.displayName = 'MessageInput';
+export default MessageInput;

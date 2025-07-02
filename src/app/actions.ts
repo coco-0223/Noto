@@ -8,21 +8,29 @@ import { revalidatePath } from 'next/cache';
 import { getDoc, doc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 
-export async function getBotResponse(userInput: string, conversationId: string) {
+export async function getBotResponse(userMessages: string[], conversationId: string) {
   try {
-    // 1. Save user message
-    const userMessage = await chatService.addMessage(conversationId, { text: userInput, sender: 'user' });
+    const combinedInput = userMessages.join('\n');
+
+    // 1. Save user messages individually
+    for (const messageText of userMessages) {
+        await chatService.addMessage(conversationId, { text: messageText, sender: 'user' });
+    }
 
     // 2. Get conversation context
-    // In a real app, getting messages for history would be more complex and paginated.
-    // For now, we'll keep it simple, but this is not scalable.
     const conversationDoc = await getDoc(doc(db, 'conversations', conversationId));
     const categoryId = conversationDoc.data()?.title || 'General';
 
-    // 3. Call AI flow
+    const recentMessages = await chatService.getMessages(conversationId, 10);
+    const chatHistory: ChatHistory[] = recentMessages.map(m => ({
+        role: m.sender,
+        content: m.text,
+    }));
+
+    // 3. Call AI flow with the combined input
     const response = await proactiveMemory({
-      userInput,
-      chatHistory: [], // Keeping this empty for simplicity for now. A real implementation would fetch recent messages.
+      userInput: combinedInput,
+      chatHistory,
       categoryId,
       now: new Date().toISOString(),
     });
@@ -61,7 +69,6 @@ export async function getBotResponse(userInput: string, conversationId: string) 
       success: true,
       data: {
         ...response,
-        userMessage,
         botMessage,
       },
     };

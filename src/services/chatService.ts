@@ -38,6 +38,21 @@ export async function getConversations(): Promise<Conversation[]> {
     return snapshot.docs.map(docToConversation);
 }
 
+export async function getMessages(conversationId: string, count: number = 10): Promise<Message[]> {
+    const conversationRef = doc(db, 'conversations', conversationId);
+    const messagesRef = collection(conversationRef, 'messages');
+    const q = query(messagesRef, orderBy('timestamp', 'desc'), limit(count));
+    const snapshot = await getDocs(q);
+    const messages = snapshot.docs.map(doc => {
+        const data = doc.data();
+        return {
+            id: doc.id,
+            ...data,
+        } as Message;
+    });
+    return messages.reverse();
+}
+
 export async function addMessage(conversationId: string, message: { text: string; sender: 'user' | 'bot' }): Promise<Message> {
     const conversationRef = doc(db, 'conversations', conversationId);
     const messagesRef = collection(conversationRef, 'messages');
