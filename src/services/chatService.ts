@@ -16,6 +16,7 @@ import {
     getDoc,
     setDoc,
 } from 'firebase/firestore';
+import * as C from '@/lib/constants';
 
 function docToConversation(doc: any): Conversation {
     const data = doc.data();
@@ -26,21 +27,21 @@ function docToConversation(doc: any): Conversation {
 }
 
 export async function getConversations(): Promise<Conversation[]> {
-    const conversationsRef = collection(db, 'conversations');
+    const conversationsRef = collection(db, C.CONVERSATIONS);
     const q = query(conversationsRef, orderBy('pinned', 'desc'), orderBy('timestamp', 'desc'));
     const snapshot = await getDocs(q);
     if (snapshot.empty) {
         // Create the first "General" conversation if none exist
         const generalConv = await getOrCreateConversation('General', true);
-        const convDoc = await getDoc(doc(db, 'conversations', generalConv.id));
+        const convDoc = await getDoc(doc(db, C.CONVERSATIONS, generalConv.id));
         return [docToConversation(convDoc)];
     }
     return snapshot.docs.map(docToConversation);
 }
 
 export async function getMessages(conversationId: string, count: number = 10): Promise<Message[]> {
-    const conversationRef = doc(db, 'conversations', conversationId);
-    const messagesRef = collection(conversationRef, 'messages');
+    const conversationRef = doc(db, C.CONVERSATIONS, conversationId);
+    const messagesRef = collection(conversationRef, C.MESSAGES);
     const q = query(messagesRef, orderBy('timestamp', 'desc'), limit(count));
     const snapshot = await getDocs(q);
     const messages = snapshot.docs.map(doc => {
@@ -54,8 +55,8 @@ export async function getMessages(conversationId: string, count: number = 10): P
 }
 
 export async function addMessage(conversationId: string, message: { text: string; sender: 'user' | 'bot' }): Promise<Message> {
-    const conversationRef = doc(db, 'conversations', conversationId);
-    const messagesRef = collection(conversationRef, 'messages');
+    const conversationRef = doc(db, C.CONVERSATIONS, conversationId);
+    const messagesRef = collection(conversationRef, C.MESSAGES);
     
     const messageData = {
         ...message,
@@ -78,7 +79,7 @@ export async function addMessage(conversationId: string, message: { text: string
 }
 
 export async function saveMemory(memory: { summary: string; category: string }): Promise<string> {
-    const memoriesRef = collection(db, 'memories');
+    const memoriesRef = collection(db, C.MEMORIES);
     const memoryData = {
         ...memory,
         createdAt: serverTimestamp()
@@ -90,7 +91,7 @@ export async function saveMemory(memory: { summary: string; category: string }):
 
 export async function getOrCreateConversation(category: string, pinned = false): Promise<Conversation> {
     const normalizedCategory = category.charAt(0).toUpperCase() + category.slice(1).toLowerCase();
-    const conversationsRef = collection(db, 'conversations');
+    const conversationsRef = collection(db, C.CONVERSATIONS);
     const q = query(conversationsRef, where('title', '==', normalizedCategory), limit(1));
     const snapshot = await getDocs(q);
 
@@ -114,7 +115,7 @@ export async function getOrCreateConversation(category: string, pinned = false):
 }
 
 export async function addReminder(reminder: { text: string, remindAt: string, conversationId: string }): Promise<string> {
-    const remindersRef = collection(db, 'reminders');
+    const remindersRef = collection(db, C.REMINDERS);
     const reminderData = {
         ...reminder,
         triggerAt: Timestamp.fromDate(new Date(reminder.remindAt)),
@@ -125,7 +126,7 @@ export async function addReminder(reminder: { text: string, remindAt: string, co
 }
 
 export async function searchReminders(): Promise<Reminder[]> {
-    const remindersRef = collection(db, 'reminders');
+    const remindersRef = collection(db, C.REMINDERS);
     const q = query(remindersRef, where('processed', '==', false), orderBy('triggerAt', 'asc'));
     const snapshot = await getDocs(q);
     
@@ -136,7 +137,7 @@ export async function searchReminders(): Promise<Reminder[]> {
 }
 
 export async function searchMemories(query?: string): Promise<Memory[]> {
-    const memoriesRef = collection(db, 'memories');
+    const memoriesRef = collection(db, C.MEMORIES);
     let q;
     if (query && query.trim() !== '') {
         // Firestore doesn't support case-insensitive search natively. A real app would use a 
@@ -157,7 +158,7 @@ export async function searchMemories(query?: string): Promise<Memory[]> {
 
 export async function getDueReminders(): Promise<Reminder[]> {
     const now = Timestamp.now();
-    const remindersRef = collection(db, 'reminders');
+    const remindersRef = collection(db, C.REMINDERS);
     const q = query(remindersRef, where('processed', '==', false), where('triggerAt', '<=', now));
     const snapshot = await getDocs(q);
     return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Reminder));
@@ -165,14 +166,14 @@ export async function getDueReminders(): Promise<Reminder[]> {
 
 export async function markRemindersAsProcessed(reminderIds: string[]): Promise<void> {
     const promises = reminderIds.map(id => {
-        const reminderRef = doc(db, 'reminders', id);
+        const reminderRef = doc(db, C.REMINDERS, id);
         return updateDoc(reminderRef, { processed: true });
     });
     await Promise.all(promises);
 }
 
 export async function getAppState() {
-    const appStateRef = doc(db, 'app_state', 'singleton');
+    const appStateRef = doc(db, C.APP_STATE, 'singleton');
     const docSnap = await getDoc(appStateRef);
     if (docSnap.exists()) {
         return docSnap.data();
@@ -181,6 +182,6 @@ export async function getAppState() {
 }
 
 export async function updateAppState(data: any) {
-    const appStateRef = doc(db, 'app_state', 'singleton');
+    const appStateRef = doc(db, C.APP_STATE, 'singleton');
     await setDoc(appStateRef, data, { merge: true });
 }

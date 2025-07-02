@@ -4,13 +4,14 @@ import { collection, onSnapshot } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import type { Conversation } from '@/lib/types';
 import { getOrCreateConversation } from '@/services/chatService';
+import * as C from '@/lib/constants';
 
 export default function useConversations() {
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const conversationsRef = collection(db, 'conversations');
+    const conversationsRef = collection(db, C.CONVERSATIONS);
 
     const unsubscribe = onSnapshot(conversationsRef, async (snapshot) => {
       if (snapshot.empty) {
