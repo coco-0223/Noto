@@ -12,7 +12,7 @@ import useConversationInfo from '@/hooks/useConversationInfo';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 
-import { BookText, Cake, Calendar, Lightbulb, ListTodo, MessageSquare, Loader2 } from 'lucide-react';
+import { BookText, Cake, Calendar, Lightbulb, ListTodo, MessageSquare, Loader2, CreditCard } from 'lucide-react';
 
 const categoryIcons: {[key: string]: React.ReactNode} = {
     General: <MessageSquare className="w-5 h-5" />,
@@ -22,6 +22,7 @@ const categoryIcons: {[key: string]: React.ReactNode} = {
     Eventos: <Calendar className="w-5 h-5" />,
     Cumpleaños: <Cake className="w-5 h-5" />,
     Recordatorios: <Calendar className="w-5 h-5" />,
+    Gastos: <CreditCard className="w-5 h-5" />,
 };
 
 
@@ -42,6 +43,9 @@ export default function ChatPage() {
   const displayTitle = chatInfo?.title || 'Cargando...';
 
   useEffect(() => {
+    // Focus input on initial load
+    inputRef.current?.focus();
+    
     // Cleanup timer on component unmount
     return () => {
       if (debounceTimer.current) clearTimeout(debounceTimer.current);
@@ -78,17 +82,10 @@ export default function ChatPage() {
           })
        }
     } else {
-      const errorBotMessage: Message = {
-        id: Date.now().toString(),
-        text: 'Lo siento, algo salió mal. Por favor, inténtalo de nuevo.',
-        sender: 'bot',
-        timestamp: new Date().toISOString(),
-      };
-      setMessages((prev) => [...prev, errorBotMessage]);
-      toast({
+       toast({
         variant: "destructive",
         title: "Error",
-        description: response.error,
+        description: response.error || 'Lo siento, algo salió mal. Por favor, inténtalo de nuevo.',
       });
     }
     inputRef.current?.focus();

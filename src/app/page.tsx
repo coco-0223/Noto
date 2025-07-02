@@ -3,7 +3,7 @@ import ConversationListItem from '@/components/chat/ConversationListItem';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import type { Conversation } from '@/lib/types';
-import { BookText, Cake, Calendar, Lightbulb, ListTodo, MessageSquare, Loader2 } from 'lucide-react';
+import { BookText, Cake, Calendar, CreditCard, Lightbulb, ListTodo, MessageSquare, Loader2 } from 'lucide-react';
 import useConversations from '@/hooks/useConversations';
 
 const categoryIcons: {[key: string]: React.ReactNode} = {
@@ -14,6 +14,7 @@ const categoryIcons: {[key: string]: React.ReactNode} = {
   Eventos: <Calendar className="w-6 h-6 text-primary" />,
   Cumpleaños: <Cake className="w-6 h-6 text-primary" />,
   Recordatorios: <Calendar className="w-6 h-6 text-primary" />,
+  Gastos: <CreditCard className="w-6 h-6 text-primary" />,
 };
 
 function getIconForConversation(conversation: Conversation) {
