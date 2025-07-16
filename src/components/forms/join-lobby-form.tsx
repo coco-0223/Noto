@@ -44,8 +44,11 @@ export function JoinLobbyForm({ lobby, onCorrectPassword }: JoinLobbyFormProps) 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsLoading(true);
     
+    console.log(`Intentando contraseña: '${values.password}' para el lobby con contraseña: '${lobby.password}'`);
+
     // Client-side validation
     if (lobby.password === values.password) {
+        console.log("¡Contraseña correcta! Redirigiendo...");
         toast({
             title: "¡Éxito!",
             description: `Te has unido al lobby "${lobby.name}".`,
