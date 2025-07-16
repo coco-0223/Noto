@@ -29,10 +29,7 @@ export default function LobbiesPage() {
     const [lobbies, setLobbies] = useState<Lobby[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [isCreateLobbyOpen, setCreateLobbyOpen] = useState(false);
-    const [selectedLobby, setSelectedLobby] = useState<Lobby | null>(null);
-    const [isJoinLobbyOpen, setJoinLobbyOpen] = useState(false);
-
-
+    
     useEffect(() => {
         const unsubscribe = getLobbies(
             (lobbies) => {
@@ -52,16 +49,6 @@ export default function LobbiesPage() {
 
         return () => unsubscribe();
     }, [toast]);
-
-
-    const handleJoinLobbyClick = (lobby: Lobby) => {
-        if (lobby.hasPassword) {
-            setSelectedLobby(lobby);
-            setJoinLobbyOpen(true);
-        } else {
-            router.push(`/lobbies/${lobby.id}`);
-        }
-    };
     
     const handleLogout = async () => {
         await signOut();
@@ -74,12 +61,6 @@ export default function LobbiesPage() {
             title: 'Lobby creado',
             description: 'El nuevo lobby se ha creado exitosamente.',
         })
-    };
-
-    const handleSuccessfulJoin = (lobbyId: string) => {
-        setJoinLobbyOpen(false);
-        setSelectedLobby(null);
-        router.push(`/lobbies/${lobbyId}`);
     };
 
 
@@ -141,49 +122,51 @@ export default function LobbiesPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {lobbies.map((lobby) => (
                 <Card key={lobby.id} className="flex flex-col">
-                <CardHeader>
-                    <CardTitle className="flex items-center justify-between">
-                        <span>{lobby.name}</span>
-                        {lobby.hasPassword && <Lock className="h-4 w-4 text-muted-foreground" />}
-                    </CardTitle>
-                    <CardDescription className='flex items-center pt-1'>
-                        <Hospital className="mr-2 h-4 w-4" />
-                        {lobby.facility}
-                    </CardDescription>
-                </CardHeader>
-                <CardContent className="flex-grow flex items-center text-sm text-muted-foreground">
-                    <Users className="mr-2 h-4 w-4" />
-                    <span>{lobby.patientCount} pacientes</span>
-                </CardContent>
-                <div className="p-6 pt-0">
-                    <Button onClick={() => handleJoinLobbyClick(lobby)} className="w-full">
-                        Unirse al Lobby
-                        <ChevronRight className="ml-2 h-4 w-4" />
-                    </Button>
-                </div>
+                    <CardHeader>
+                        <CardTitle className="flex items-center justify-between">
+                            <span>{lobby.name}</span>
+                            {lobby.hasPassword && <Lock className="h-4 w-4 text-muted-foreground" />}
+                        </CardTitle>
+                        <CardDescription className='flex items-center pt-1'>
+                            <Hospital className="mr-2 h-4 w-4" />
+                            {lobby.facility}
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent className="flex-grow flex items-center text-sm text-muted-foreground">
+                        <Users className="mr-2 h-4 w-4" />
+                        <span>{lobby.patientCount} pacientes</span>
+                    </CardContent>
+                    <div className="p-6 pt-0">
+                        {lobby.hasPassword ? (
+                            <Dialog>
+                                <DialogTrigger asChild>
+                                    <Button className="w-full">
+                                        Unirse al Lobby
+                                        <ChevronRight className="ml-2 h-4 w-4" />
+                                    </Button>
+                                </DialogTrigger>
+                                <DialogContent>
+                                    <DialogHeader>
+                                        <DialogTitle>Contraseña Requerida</DialogTitle>
+                                        <DialogDescription>
+                                            El lobby "{lobby.name}" está protegido. Por favor, introduce la contraseña para unirte.
+                                        </DialogDescription>
+                                    </DialogHeader>
+                                    <JoinLobbyForm lobbyId={lobby.id} />
+                                </DialogContent>
+                            </Dialog>
+                        ) : (
+                            <Button onClick={() => router.push(`/lobbies/${lobby.id}`)} className="w-full">
+                                Unirse al Lobby
+                                <ChevronRight className="ml-2 h-4 w-4" />
+                            </Button>
+                        )}
+                    </div>
                 </Card>
             ))}
             </div>
         )}
       </main>
-
-      {/* Join Lobby with Password Dialog */}
-      {selectedLobby && (
-        <Dialog open={isJoinLobbyOpen} onOpenChange={setJoinLobbyOpen}>
-            <DialogContent>
-            <DialogHeader>
-                <DialogTitle>Contraseña Requerida</DialogTitle>
-                <DialogDescription>
-                El lobby "{selectedLobby?.name}" está protegido. Por favor, introduce la contraseña para unirte.
-                </DialogDescription>
-            </DialogHeader>
-            <JoinLobbyForm 
-                lobbyId={selectedLobby.id} 
-                onSuccessfulJoin={handleSuccessfulJoin}
-            />
-            </DialogContent>
-        </Dialog>
-      )}
     </div>
   );
 }
