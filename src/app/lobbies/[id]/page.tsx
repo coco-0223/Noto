@@ -1,10 +1,10 @@
 
 'use client';
-import { ArrowLeft, PlusCircle, UserPlus, Users, Settings } from 'lucide-react';
+import { ArrowLeft, UserPlus, Users, Settings } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
@@ -19,6 +19,7 @@ const mockPatients = [
 
 export default function LobbyDetailPage() {
   const params = useParams();
+  const router = useRouter();
   const lobbyId = params.id as string;
   
   // Mock data
@@ -57,7 +58,7 @@ export default function LobbyDetailPage() {
             <TabsContent value="patients">
                 <div className="space-y-4">
                     {mockPatients.map((patient) => (
-                        <Card key={patient.id} className="cursor-pointer hover:shadow-lg transition-shadow">
+                        <Card key={patient.id} className="cursor-pointer hover:shadow-lg transition-shadow" onClick={() => router.push(`/lobbies/${lobbyId}/patients/${patient.id}`)}>
                             <CardHeader>
                                 <div className="flex justify-between items-start">
                                     <div>
@@ -106,4 +107,3 @@ export default function LobbyDetailPage() {
     </div>
   );
 }
-
