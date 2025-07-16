@@ -2,7 +2,7 @@
 import { auth, db } from '@/lib/firebase';
 import { 
     createUserWithEmailAndPassword, 
-    signInWithEmailAndPassword,
+    signInWithEmailAndPassword as firebaseSignIn,
     updateProfile,
     User
 } from 'firebase/auth';
@@ -34,14 +34,12 @@ export const signUpWithEmailAndPassword = async (email: string, password: string
     }
 };
 
-export const signIn = async (email: string, password: string): Promise<User> => {
+export const signInWithEmailAndPassword = async (email: string, password: string): Promise<User> => {
     try {
-        const userCredential = await signInWithEmailAndPassword(auth, email, password);
+        const userCredential = await firebaseSignIn(auth, email, password);
         return userCredential.user;
     } catch (error) {
         console.error("Error signing in:", error);
         throw error;
     }
 };
-
-export { signInWithEmailAndPassword };
