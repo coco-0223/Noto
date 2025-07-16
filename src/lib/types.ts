@@ -6,10 +6,8 @@ export type Nurse = {
     id: string;
     email: string;
     fullName: string;
-    // TO-DO: Add permissions later
-    // permissions: {
-    //     [lobbyId: string]: 'admin' | 'editor' | 'viewer';
-    // }
+    // Lobby-specific role
+    role?: LobbyRole;
 };
 
 export type Lobby = {
@@ -19,6 +17,7 @@ export type Lobby = {
     patientCount: number;
     hasPassword?: boolean;
     password?: string;
+    createdAt?: any;
 };
 
 export type Patient = {
@@ -28,6 +27,12 @@ export type Patient = {
     age: number;
     diagnosis: string;
     lobbyId: string;
+    createdAt?: any;
+    lastEntry?: {
+        text: string;
+        timestamp: string;
+        status: EntryStatus;
+    } | null;
 };
 
 export type EntryType = "observation" | "adverseEffect" | "complaint";

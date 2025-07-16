@@ -44,6 +44,7 @@ export function InviteNurseForm({ onInviteSent }: InviteNurseFormProps) {
     // Simulate API call
     setTimeout(() => {
         onInviteSent(values);
+        form.reset();
         setIsLoading(false);
     }, 500);
   }

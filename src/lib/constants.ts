@@ -13,3 +13,4 @@ export const NURSES = 'nurses' + DATA_VERSION_SUFFIX;
 // Sub-collections
 export const PATIENTS = 'patients';
 export const ENTRIES = 'entries';
+export const MEMBERS = 'members';
