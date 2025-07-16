@@ -28,13 +28,12 @@ const formSchema = z.object({
 
 type JoinLobbyFormProps = {
     lobbyId: string;
-    onSuccessfulJoin: () => void;
+    onSuccessfulJoin: (lobbyId: string) => void;
 }
 
 export function JoinLobbyForm({ lobbyId, onSuccessfulJoin }: JoinLobbyFormProps) {
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
-  const router = useRouter();
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -51,9 +50,9 @@ export function JoinLobbyForm({ lobbyId, onSuccessfulJoin }: JoinLobbyFormProps)
     if (result.success) {
         toast({
             title: "¡Éxito!",
-            description: "Contraseña correcta.",
+            description: "Contraseña correcta. Redirigiendo...",
         });
-        onSuccessfulJoin();
+        onSuccessfulJoin(lobbyId);
     } else {
         toast({
             variant: "destructive",
