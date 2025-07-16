@@ -4,6 +4,10 @@ export type Nurse = {
     id: string;
     email: string;
     fullName: string;
+    // TO-DO: Add permissions later
+    // permissions: {
+    //     [lobbyId: string]: 'admin' | 'editor' | 'viewer';
+    // }
 };
 
 export type Lobby = {
@@ -12,20 +16,29 @@ export type Lobby = {
     facility: string;
     patientCount: number;
     hasPassword?: boolean;
+    password?: string;
 };
 
 export type Patient = {
     id: string;
-    name: string;
-    roomNumber: string;
-    // other patient details
+    firstName: string;
+    lastName: string;
+    age: number;
+    diagnosis: string;
+    lobbyId: string;
 };
 
-export type Note = {
+export type EntryType = "observation" | "adverseEffect" | "complaint";
+export type EntryStatus = "ok" | "attention" | "note";
+
+export type Entry = {
     id: string;
-    text: string;
+    patientId: string;
     authorId: string; // Nurse ID
     authorName: string;
-    timestamp: Date;
+    type: EntryType;
+    status: EntryStatus;
+    note?: string; // Only if status is 'note'
     audioUrl?: string; // Link to the voice note if it exists
+    timestamp: Date;
 };
