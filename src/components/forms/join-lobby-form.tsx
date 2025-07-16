@@ -15,8 +15,9 @@ import {
 } from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
 import { useState } from "react";
-import type { Lobby } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
+import { verifyLobbyPassword } from "@/app/actions";
+import { useRouter } from "next/navigation";
 
 const formSchema = z.object({
   password: z.string().min(1, {
@@ -26,13 +27,14 @@ const formSchema = z.object({
 
 
 type JoinLobbyFormProps = {
-    lobby: Lobby;
-    onCorrectPassword: () => void;
+    lobbyId: string;
+    onSuccessfulJoin: () => void;
 }
 
-export function JoinLobbyForm({ lobby, onCorrectPassword }: JoinLobbyFormProps) {
+export function JoinLobbyForm({ lobbyId, onSuccessfulJoin }: JoinLobbyFormProps) {
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
+  const router = useRouter();
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -44,17 +46,19 @@ export function JoinLobbyForm({ lobby, onCorrectPassword }: JoinLobbyFormProps) 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsLoading(true);
     
-    console.log(`Intentando contraseña: '${values.password}' para el lobby con contraseña: '${lobby.password}'`);
-
-    // Client-side validation
-    if (lobby.password === values.password) {
-        console.log("¡Contraseña correcta! Redirigiendo...");
-        onCorrectPassword();
+    const result = await verifyLobbyPassword(lobbyId, values.password);
+    
+    if (result.success) {
+        toast({
+            title: "¡Éxito!",
+            description: "Contraseña correcta.",
+        });
+        onSuccessfulJoin();
     } else {
         toast({
             variant: "destructive",
             title: "Error",
-            description: "La contraseña es incorrecta.",
+            description: result.message,
         });
         form.reset();
     }
