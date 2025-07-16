@@ -17,7 +17,6 @@ import { Input } from "@/components/ui/input"
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { verifyLobbyPassword } from "@/app/actions";
-import { useRouter } from "next/navigation";
 
 const formSchema = z.object({
   password: z.string().min(1, {
@@ -45,24 +44,32 @@ export function JoinLobbyForm({ lobbyId, onSuccessfulJoin }: JoinLobbyFormProps)
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsLoading(true);
     
-    const result = await verifyLobbyPassword(lobbyId, values.password);
+    try {
+        const result = await verifyLobbyPassword(lobbyId, values.password);
     
-    if (result.success) {
-        toast({
-            title: "¡Éxito!",
-            description: "Contraseña correcta. Redirigiendo...",
-        });
-        onSuccessfulJoin(lobbyId);
-    } else {
+        if (result.success) {
+            toast({
+                title: "¡Éxito!",
+                description: "Contraseña correcta. Redirigiendo...",
+            });
+            onSuccessfulJoin(lobbyId);
+        } else {
+            toast({
+                variant: "destructive",
+                title: "Error",
+                description: result.message,
+            });
+            form.reset();
+        }
+    } catch (error) {
         toast({
             variant: "destructive",
-            title: "Error",
-            description: result.message,
+            title: "Error de Conexión",
+            description: "No se pudo comunicar con el servidor. Inténtalo de nuevo.",
         });
-        form.reset();
+    } finally {
+        setIsLoading(false);
     }
-    
-    setIsLoading(false);
   }
 
   return (
