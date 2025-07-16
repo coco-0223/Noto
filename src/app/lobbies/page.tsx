@@ -72,12 +72,6 @@ export default function LobbiesPage() {
         })
     };
 
-    const handleCorrectPassword = (lobbyId: string) => {
-        // TODO: Cache password
-        setSelectedLobby(null);
-        router.push(`/lobbies/${lobbyId}`);
-    };
-
   return (
     <div className="flex min-h-screen bg-secondary/30">
         <aside className="w-64 bg-background p-4 flex flex-col justify-between">
@@ -174,7 +168,7 @@ export default function LobbiesPage() {
           {selectedLobby && (
             <JoinLobbyForm 
               lobby={selectedLobby} 
-              onCorrectPassword={() => handleCorrectPassword(selectedLobby.id)}
+              onCorrectPassword={() => setSelectedLobby(null)}
             />
           )}
         </DialogContent>
