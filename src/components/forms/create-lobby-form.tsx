@@ -18,6 +18,8 @@ import { Input } from "@/components/ui/input"
 import { Switch } from "@/components/ui/switch"
 import { useState } from "react";
 import type { Lobby } from "@/lib/types";
+import { addLobby } from "@/lib/firebase/lobbies";
+import { useToast } from "@/hooks/use-toast";
 
 const formSchema = z.object({
   name: z.string().min(2, {
@@ -40,11 +42,12 @@ const formSchema = z.object({
 
 
 type CreateLobbyFormProps = {
-    onLobbyCreated: (lobby: Omit<Lobby, 'id' | 'patientCount'>) => void;
+    onLobbyCreated: () => void;
 }
 
 export function CreateLobbyForm({ onLobbyCreated }: CreateLobbyFormProps) {
   const [isLoading, setIsLoading] = useState(false);
+  const { toast } = useToast();
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -58,13 +61,21 @@ export function CreateLobbyForm({ onLobbyCreated }: CreateLobbyFormProps) {
 
   const watchHasPassword = form.watch("hasPassword");
 
-  function onSubmit(values: z.infer<typeof formSchema>) {
+  async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsLoading(true);
-    // Simulate API call
-    setTimeout(() => {
-        onLobbyCreated(values);
+    try {
+        await addLobby(values);
+        onLobbyCreated();
+    } catch (error) {
+        console.error("Error creating lobby:", error);
+        toast({
+            variant: "destructive",
+            title: "Error",
+            description: "No se pudo crear el lobby. Inténtalo de nuevo.",
+        });
+    } finally {
         setIsLoading(false);
-    }, 500);
+    }
   }
 
   return (
