@@ -1,97 +1,65 @@
 
 'use client';
 
-import { zodResolver } from "@hookform/resolvers/zod"
-import { useForm } from "react-hook-form"
-import { z } from "zod"
-import { Button } from "@/components/ui/button"
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form"
-import { Input } from "@/components/ui/input"
-import { useState } from "react";
-import { useToast } from "@/hooks/use-toast";
+import { useFormState, useFormStatus } from 'react-dom';
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from '@/components/ui/label';
 import { verifyLobbyPassword } from "@/app/actions";
+import { useEffect } from 'react';
+import { useToast } from '@/hooks/use-toast';
 
-const formSchema = z.object({
-  password: z.string().min(1, {
-    message: "La contraseña es requerida.",
-  }),
-});
+const initialState = {
+  message: '',
+};
 
+function SubmitButton() {
+  const { pending } = useFormStatus();
+
+  return (
+    <Button type="submit" className="w-full" disabled={pending}>
+      {pending ? 'Verificando...' : 'Unirse al Lobby'}
+    </Button>
+  );
+}
 
 type JoinLobbyFormProps = {
     lobbyId: string;
-    onSuccessfulJoin: (lobbyId: string) => void;
 }
 
-export function JoinLobbyForm({ lobbyId, onSuccessfulJoin }: JoinLobbyFormProps) {
-  const [isLoading, setIsLoading] = useState(false);
+export function JoinLobbyForm({ lobbyId }: JoinLobbyFormProps) {
+  const [state, formAction] = useFormState(verifyLobbyPassword, initialState);
   const { toast } = useToast();
 
-  const form = useForm<z.infer<typeof formSchema>>({
-    resolver: zodResolver(formSchema),
-    defaultValues: {
-      password: "",
-    },
-  })
-
-  async function onSubmit(values: z.infer<typeof formSchema>) {
-    setIsLoading(true);
-    
-    try {
-        const result = await verifyLobbyPassword(lobbyId, values.password);
-    
-        if (result.success) {
-            toast({
-                title: "¡Éxito!",
-                description: "Contraseña correcta. Redirigiendo...",
-            });
-            onSuccessfulJoin(lobbyId);
-        } else {
-            toast({
-                variant: "destructive",
-                title: "Error",
-                description: result.message,
-            });
-            form.reset();
-        }
-    } catch (error) {
-        toast({
-            variant: "destructive",
-            title: "Error de Conexión",
-            description: "No se pudo comunicar con el servidor. Inténtalo de nuevo.",
-        });
-    } finally {
-        setIsLoading(false);
+  useEffect(() => {
+    if (state?.message) {
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: state.message,
+      });
     }
-  }
+  }, [state, toast]);
 
   return (
-    <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-        <FormField
-            control={form.control}
-            name="password"
-            render={({ field }) => (
-                <FormItem>
-                <FormLabel>Contraseña del Lobby</FormLabel>
-                <FormControl>
-                    <Input type="password" placeholder="••••••••" {...field} />
-                </FormControl>
-                <FormMessage />
-                </FormItem>
-            )}
+    <form action={formAction} className="space-y-6">
+      <div className="space-y-2">
+        <Label htmlFor="password">Contraseña del Lobby</Label>
+        <Input 
+          id="password" 
+          name="password" 
+          type="password" 
+          placeholder="••••••••" 
+          required 
         />
-        <Button type="submit" className="w-full" disabled={isLoading}>
-            {isLoading ? 'Verificando...' : 'Unirse al Lobby'}
-        </Button>
-      </form>
-    </Form>
-  )
+        <input type="hidden" name="lobbyId" value={lobbyId} />
+      </div>
+      {state?.message && (
+         <p aria-live="polite" className="text-sm text-destructive">
+          {state.message}
+        </p>
+      )}
+      <SubmitButton />
+    </form>
+  );
 }

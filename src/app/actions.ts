@@ -3,30 +3,50 @@
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { LOBBIES } from '@/lib/constants';
+import { redirect } from 'next/navigation';
+import { z } from 'zod';
 
-// Server action to verify lobby password securely
-export async function verifyLobbyPassword(lobbyId: string, passwordAttempt: string): Promise<{ success: boolean; message: string }> {
-    try {
-        if (!lobbyId || !passwordAttempt) {
-            return { success: false, message: 'ID de lobby o contraseña no proporcionados.' };
-        }
+const formSchema = z.object({
+  password: z.string(),
+  lobbyId: z.string(),
+});
 
-        const lobbyRef = doc(db, LOBBIES, lobbyId);
-        const lobbySnap = await getDoc(lobbyRef);
+type State = {
+  message: string;
+}
 
-        if (!lobbySnap.exists()) {
-            return { success: false, message: 'El lobby no existe.' };
-        }
+export async function verifyLobbyPassword(
+  prevState: State,
+  formData: FormData
+): Promise<State> {
+  try {
+    const { password, lobbyId } = formSchema.parse({
+      password: formData.get('password'),
+      lobbyId: formData.get('lobbyId'),
+    });
 
-        const lobbyData = lobbySnap.data();
-
-        if (lobbyData.password === passwordAttempt) {
-            return { success: true, message: 'Contraseña correcta.' };
-        } else {
-            return { success: false, message: 'La contraseña es incorrecta.' };
-        }
-    } catch (error) {
-        console.error("Error verifying lobby password:", error);
-        return { success: false, message: 'Ocurrió un error en el servidor al verificar la contraseña.' };
+    if (!lobbyId || !password) {
+      return { message: 'ID de lobby o contraseña no proporcionados.' };
     }
+
+    const lobbyRef = doc(db, LOBBIES, lobbyId);
+    const lobbySnap = await getDoc(lobbyRef);
+
+    if (!lobbySnap.exists()) {
+      return { message: 'El lobby no existe.' };
+    }
+
+    const lobbyData = lobbySnap.data();
+
+    if (lobbyData.password !== password) {
+      return { message: 'La contraseña es incorrecta.' };
+    }
+  } catch (error) {
+    console.error('Error verifying lobby password:', error);
+    return { message: 'Ocurrió un error en el servidor.' };
+  }
+  
+  // If password is correct, redirect on the server
+  const lobbyId = formData.get('lobbyId') as string;
+  redirect(`/lobbies/${lobbyId}`);
 }
