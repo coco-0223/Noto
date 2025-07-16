@@ -179,7 +179,7 @@ export default function LobbiesPage() {
           {selectedLobby && (
             <JoinLobbyForm 
               lobbyId={selectedLobby.id} 
-              onSuccessfulJoin={() => handleSuccessfulJoin(selectedLobby.id)}
+              onSuccessfulJoin={handleSuccessfulJoin}
             />
           )}
         </DialogContent>
