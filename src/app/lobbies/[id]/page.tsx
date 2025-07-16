@@ -1,18 +1,12 @@
 
 'use client';
-import { ArrowLeft, UserPlus, Users, Settings, Mail, Trash2 } from 'lucide-react';
+import { ArrowLeft, UserPlus, Users, Settings } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useParams, useRouter } from 'next/navigation';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Badge } from '@/components/ui/badge';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { InviteNurseForm } from '@/components/forms/invite-nurse-form';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { LobbyRole, Nurse } from '@/lib/types';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { MoreVertical } from 'lucide-react';
 
 // Mock data for demonstration
 const mockPatients = [
@@ -21,21 +15,6 @@ const mockPatients = [
     { id: '3', name: 'Carlos Sánchez', diagnosis: 'Postoperatorio apendicectomía', lastEntry: { text: 'Refiere dolor en la zona de la incisión.', timestamp: 'Hace 1 hora', status: 'note' } },
 ];
 
-const mockNurses: (Nurse & { role: LobbyRole })[] = [
-    { id: 'n1', fullName: 'María López', email: 'maria@hospital.com', role: 'Admin' },
-    { id: 'n2', fullName: 'Carlos Ruiz', email: 'carlos@hospital.com', role: 'Enfermero' },
-    { id: 'n3', fullName: 'Ana García', email: 'ana@hospital.com', role: 'Espectador' },
-]
-
-
-function getRoleBadgeVariant(role: LobbyRole) {
-    switch (role) {
-        case 'Admin': return 'destructive';
-        case 'Enfermero': return 'default';
-        case 'Espectador': return 'secondary';
-        default: return 'outline';
-    }
-}
 
 export default function LobbyDetailPage() {
   const params = useParams();
@@ -44,11 +23,6 @@ export default function LobbyDetailPage() {
   
   // Mock data
   const lobbyName = `Ala Pediátrica`; // Example name
-
-  const handleInviteSent = (values: { email: string; role: LobbyRole; }) => {
-    // TODO: Connect to Firebase to send invitation
-    console.log("Invite sent:", values);
-  }
 
   return (
     <div className="flex flex-col h-screen bg-secondary/30">
@@ -115,66 +89,13 @@ export default function LobbyDetailPage() {
             <TabsContent value="admin">
                 <Card>
                     <CardHeader>
-                        <div className="flex items-center justify-between">
-                            <div>
-                                <CardTitle>Administrar Enfermeros</CardTitle>
-                                <CardDescription>
-                                    Añade, elimina o modifica los roles de los enfermeros en este lobby.
-                                </CardDescription>
-                            </div>
-                            <Dialog>
-                                <DialogTrigger asChild>
-                                    <Button>
-                                        <UserPlus className="mr-2 h-4 w-4" />
-                                        Añadir Enfermero
-                                    </Button>
-                                </DialogTrigger>
-                                <DialogContent>
-                                    <DialogHeader>
-                                        <DialogTitle>Invitar Enfermero al Lobby</DialogTitle>
-                                        <DialogDescription>
-                                            El enfermero recibirá una invitación por correo. Si no tiene una cuenta, se le pedirá que se registre.
-                                        </DialogDescription>
-                                    </DialogHeader>
-                                    <InviteNurseForm onInviteSent={handleInviteSent} />
-                                </DialogContent>
-                            </Dialog>
-                        </div>
+                        <CardTitle>Administrar Enfermeros</CardTitle>
+                        <CardDescription>
+                            Añade, elimina o modifica los roles de los enfermeros en este lobby. (Próximamente)
+                        </CardDescription>
                     </CardHeader>
                     <CardContent>
-                       <ul className="space-y-4">
-                            {mockNurses.map(nurse => (
-                                <li key={nurse.id} className="flex items-center justify-between p-3 rounded-md border bg-card">
-                                    <div className="flex items-center gap-4">
-                                        <Avatar>
-                                            <AvatarImage src={`https://i.pravatar.cc/40?u=${nurse.id}`} alt={nurse.fullName} />
-                                            <AvatarFallback>{nurse.fullName.charAt(0)}</AvatarFallback>
-                                        </Avatar>
-                                        <div>
-                                            <p className="font-semibold">{nurse.fullName}</p>
-                                            <p className="text-sm text-muted-foreground flex items-center gap-1.5"><Mail className='h-3 w-3' />{nurse.email}</p>
-                                        </div>
-                                    </div>
-                                    <div className="flex items-center gap-4">
-                                        <Badge variant={getRoleBadgeVariant(nurse.role)}>{nurse.role}</Badge>
-                                        <DropdownMenu>
-                                            <DropdownMenuTrigger asChild>
-                                                <Button variant="ghost" size="icon">
-                                                    <MoreVertical className="h-4 w-4" />
-                                                </Button>
-                                            </DropdownMenuTrigger>
-                                            <DropdownMenuContent align="end">
-                                                <DropdownMenuItem>Editar Rol</DropdownMenuItem>
-                                                <DropdownMenuItem className="text-destructive">
-                                                    <Trash2 className="mr-2 h-4 w-4" />
-                                                    Eliminar del Lobby
-                                                </DropdownMenuItem>
-                                            </DropdownMenuContent>
-                                        </DropdownMenu>
-                                    </div>
-                                </li>
-                            ))}
-                       </ul>
+                        <p>La gestión de enfermeros estará disponible aquí.</p>
                     </CardContent>
                 </Card>
             </TabsContent>
