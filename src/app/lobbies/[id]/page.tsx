@@ -1,82 +1,107 @@
 
 'use client';
-import { ArrowLeft, Mic, Send } from 'lucide-react';
+import { ArrowLeft, PlusCircle, UserPlus, Users, Settings } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Textarea } from '@/components/ui/textarea';
 import { useParams } from 'next/navigation';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Separator } from '@/components/ui/separator';
+import { Badge } from '@/components/ui/badge';
+
+// Mock data for demonstration
+const mockPatients = [
+    { id: '1', name: 'Juan Pérez', diagnosis: 'Faringitis aguda', lastEntry: { text: 'Presenta fiebre de 38.5°C.', timestamp: 'Hace 5 min', status: 'attention' } },
+    { id: '2', name: 'Ana Gómez', diagnosis: 'Migraña crónica', lastEntry: { text: 'Paciente estable, sin quejas.', timestamp: 'Hace 25 min', status: 'ok' } },
+    { id: '3', name: 'Carlos Sánchez', diagnosis: 'Postoperatorio apendicectomía', lastEntry: { text: 'Refiere dolor en la zona de la incisión.', timestamp: 'Hace 1 hora', status: 'note' } },
+];
+
 
 export default function LobbyDetailPage() {
   const params = useParams();
   const lobbyId = params.id as string;
   
   // Mock data
-  const lobbyName = `Lobby ${lobbyId}`;
+  const lobbyName = `Ala Pediátrica`; // Example name
 
   return (
-    <div className="flex h-screen bg-secondary/30">
-      <main className="flex-1 flex flex-col">
-        <header className="bg-background border-b p-4 flex items-center justify-between">
+    <div className="flex flex-col h-screen bg-secondary/30">
+        <header className="bg-background border-b p-4 flex items-center justify-between sticky top-0 z-10">
             <div className='flex items-center gap-4'>
                 <Button variant="outline" size="icon" asChild>
                     <Link href="/lobbies">
                         <ArrowLeft className="h-4 w-4" />
                     </Link>
                 </Button>
-                <h1 className="text-xl font-bold">{lobbyName}</h1>
+                <div>
+                    <h1 className="text-xl font-bold">{lobbyName}</h1>
+                    <p className="text-sm text-muted-foreground">Lobby ID: {lobbyId}</p>
+                </div>
             </div>
             {/* Action buttons for the lobby can go here */}
         </header>
 
-        <div className="flex-1 overflow-y-auto p-4 md:p-8 grid grid-cols-3 gap-8">
-            <div className="col-span-3 lg:col-span-2 space-y-6">
+      <main className="flex-1 overflow-y-auto p-4 md:p-8">
+        <Tabs defaultValue="patients">
+            <div className="flex items-center justify-between mb-4">
+                <TabsList>
+                    <TabsTrigger value="patients"><Users className="mr-2 h-4 w-4" /> Pacientes</TabsTrigger>
+                    <TabsTrigger value="admin"><Settings className="mr-2 h-4 w-4" /> Administración</TabsTrigger>
+                </TabsList>
+                 <Button>
+                    <UserPlus className="mr-2 h-4 w-4" />
+                    Añadir Paciente
+                </Button>
+            </div>
+            
+            <TabsContent value="patients">
+                <div className="space-y-4">
+                    {mockPatients.map((patient) => (
+                        <Card key={patient.id} className="cursor-pointer hover:shadow-lg transition-shadow">
+                            <CardHeader>
+                                <div className="flex justify-between items-start">
+                                    <div>
+                                        <CardTitle>{patient.name}</CardTitle>
+                                        <CardDescription>{patient.diagnosis}</CardDescription>
+                                    </div>
+                                    <Badge variant={
+                                        patient.lastEntry.status === 'ok' ? 'secondary' :
+                                        patient.lastEntry.status === 'attention' ? 'destructive' :
+                                        'default'
+                                    }>
+                                        {
+                                            patient.lastEntry.status === 'ok' ? 'OK' :
+                                            patient.lastEntry.status === 'attention' ? 'Atención' :
+                                            'Nota'
+                                        }
+                                    </Badge>
+                                </div>
+                            </CardHeader>
+                            <CardContent>
+                                <p className="text-sm text-muted-foreground italic">"{patient.lastEntry.text}"</p>
+                                <p className="text-xs text-right text-muted-foreground mt-2">{patient.lastEntry.timestamp}</p>
+                            </CardContent>
+                        </Card>
+                    ))}
+                </div>
+            </TabsContent>
+
+            <TabsContent value="admin">
                 <Card>
                     <CardHeader>
-                        <CardTitle>Notas del Turno</CardTitle>
-                        <CardDescription>Transcripciones y notas de voz.</CardDescription>
+                        <CardTitle>Administrar Enfermeros y Permisos</CardTitle>
+                        <CardDescription>
+                            Añade, elimina o modifica los roles de los enfermeros en este lobby.
+                        </CardDescription>
                     </CardHeader>
                     <CardContent>
-                        {/* Here we will list the transcribed voice notes */}
                         <p className="text-muted-foreground text-sm text-center py-8">
-                            Aún no hay notas para este turno.
+                            La gestión de enfermeros estará disponible próximamente.
                         </p>
                     </CardContent>
                 </Card>
-            </div>
-            <div className="col-span-3 lg:col-span-1">
-                 <Card className="sticky top-8">
-                    <CardHeader>
-                        <CardTitle>Pacientes</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        {/* Patient list will go here */}
-                        <p className="text-muted-foreground text-sm text-center py-8">
-                            No hay pacientes asignados.
-                        </p>
-                    </CardContent>
-                </Card>
-            </div>
-        </div>
-        
-        <footer className="bg-background border-t p-4">
-            <div className="relative">
-                <Textarea 
-                    placeholder="Escribe una nota o usa el micrófono para transcribir..."
-                    className="pr-20"
-                />
-                <div className="absolute top-1/2 right-3 transform -translate-y-1/2 flex items-center gap-2">
-                    <Button size="icon" variant="ghost">
-                        <Mic className="h-5 w-5"/>
-                        <span className="sr-only">Grabar nota de voz</span>
-                    </Button>
-                    <Button size="icon">
-                        <Send className="h-5 w-5"/>
-                        <span className="sr-only">Enviar nota</span>
-                    </Button>
-                </div>
-            </div>
-        </footer>
+            </TabsContent>
+        </Tabs>
       </main>
     </div>
   );
