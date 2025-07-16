@@ -46,7 +46,7 @@ export default function LoginPage() {
       <div className="w-full max-w-md">
         <Card>
           <CardHeader className="text-center">
-            <CardTitle className="text-2xl font-bold">Nursey</CardTitle>
+            <CardTitle className="text-2xl font-bold">Noto</CardTitle>
             <CardDescription>Tu asistente de enfermería inteligente</CardDescription>
           </CardHeader>
           <CardContent>

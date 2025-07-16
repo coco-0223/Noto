@@ -3,6 +3,7 @@ import { auth, db } from '@/lib/firebase';
 import { 
     createUserWithEmailAndPassword, 
     signInWithEmailAndPassword as firebaseSignIn,
+    signOut as firebaseSignOut,
     updateProfile,
     User
 } from 'firebase/auth';
@@ -43,3 +44,12 @@ export const signInWithEmailAndPassword = async (email: string, password: string
         throw error;
     }
 };
+
+export const signOut = async (): Promise<void> => {
+    try {
+        await firebaseSignOut(auth);
+    } catch (error) {
+        console.error("Error signing out:", error);
+        throw error;
+    }
+}

@@ -56,7 +56,7 @@ export default function RegisterPage() {
         <Card>
           <CardHeader className="text-center">
             <CardTitle className="text-2xl font-bold">Crear Cuenta</CardTitle>
-            <CardDescription>Únete a Nursey para empezar a trabajar</CardDescription>
+            <CardDescription>Únete a Noto para empezar a trabajar</CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleRegister} className="space-y-4">

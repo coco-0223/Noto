@@ -20,6 +20,7 @@ import { getLobbies } from '@/lib/firebase/lobbies';
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
 import { JoinLobbyForm } from '@/components/forms/join-lobby-form';
+import { signOut } from '@/lib/firebase/auth';
 
 
 export default function LobbiesPage() {
@@ -59,8 +60,8 @@ export default function LobbiesPage() {
         }
     };
     
-    const handleLogout = () => {
-        // TODO: Implement Firebase logout
+    const handleLogout = async () => {
+        await signOut();
         router.push('/');
     };
 
@@ -76,7 +77,7 @@ export default function LobbiesPage() {
     <div className="flex min-h-screen bg-secondary/30">
         <aside className="w-64 bg-background p-4 flex flex-col justify-between">
             <div>
-                <h1 className="text-2xl font-bold mb-6 text-primary">Nursey</h1>
+                <h1 className="text-2xl font-bold mb-6 text-primary">Noto</h1>
                 <nav>
                     {/* Navigation items can go here later */}
                 </nav>
@@ -168,7 +169,10 @@ export default function LobbiesPage() {
           {selectedLobby && (
             <JoinLobbyForm 
               lobby={selectedLobby} 
-              onCorrectPassword={() => setSelectedLobby(null)}
+              onCorrectPassword={() => {
+                router.push(`/lobbies/${selectedLobby.id}`);
+                setSelectedLobby(null);
+              }}
             />
           )}
         </DialogContent>
