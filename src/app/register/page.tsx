@@ -9,6 +9,7 @@ import { Label } from '@/components/ui/label';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
+import { signUpWithEmailAndPassword } from '@/lib/firebase/auth';
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -18,30 +19,35 @@ export default function RegisterPage() {
   const [fullName, setFullName] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
-  const handleRegister = (e: React.FormEvent) => {
+  const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsLoading(true);
-
-    // TODO: Implement actual Firebase registration
-    console.log('Registering with:', fullName, email, password);
-
-    // Simulate API call
-    setTimeout(() => {
-       if (email && password && fullName) {
-        toast({
-          title: 'Registro exitoso',
-          description: 'Tu cuenta ha sido creada.',
-        });
-        router.push('/lobbies');
-      } else {
+    if (!fullName || !email || !password) {
         toast({
           variant: 'destructive',
           title: 'Error de registro',
           description: 'Por favor, completa todos los campos.',
         });
+        return;
+    }
+    setIsLoading(true);
+
+    try {
+        await signUpWithEmailAndPassword(email, password, fullName);
+        toast({
+          title: 'Registro exitoso',
+          description: 'Tu cuenta ha sido creada. Redirigiendo...',
+        });
+        router.push('/lobbies');
+    } catch (error: any) {
+        console.error(error);
+        toast({
+          variant: 'destructive',
+          title: 'Error de registro',
+          description: error.message || 'No se pudo crear la cuenta.',
+        });
+    } finally {
         setIsLoading(false);
-      }
-    }, 1000);
+    }
   };
 
   return (
