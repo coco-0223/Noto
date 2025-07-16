@@ -74,6 +74,17 @@ export default function LobbiesPage() {
         })
     };
 
+    const handleCorrectPassword = () => {
+        if (selectedLobby) {
+            toast({
+                title: "¡Éxito!",
+                description: `Te has unido al lobby "${selectedLobby.name}".`,
+            });
+            router.push(`/lobbies/${selectedLobby.id}`);
+            setSelectedLobby(null);
+        }
+    };
+
   return (
     <div className="flex min-h-screen bg-secondary/30">
         <aside className="w-64 bg-background p-4 flex flex-col justify-between">
@@ -170,10 +181,7 @@ export default function LobbiesPage() {
           {selectedLobby && (
             <JoinLobbyForm 
               lobby={selectedLobby} 
-              onCorrectPassword={() => {
-                router.push(`/lobbies/${selectedLobby.id}`);
-                setSelectedLobby(null);
-              }}
+              onCorrectPassword={handleCorrectPassword}
             />
           )}
         </DialogContent>
