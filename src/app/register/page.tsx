@@ -10,33 +10,34 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
 
-export default function LoginPage() {
+export default function RegisterPage() {
   const router = useRouter();
   const { toast } = useToast();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [fullName, setFullName] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleRegister = (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
 
-    // TODO: Implement actual Firebase authentication
-    console.log('Logging in with:', email, password);
+    // TODO: Implement actual Firebase registration
+    console.log('Registering with:', fullName, email, password);
 
     // Simulate API call
     setTimeout(() => {
-      if (email && password) {
+       if (email && password && fullName) {
         toast({
-          title: 'Inicio de sesión exitoso',
-          description: 'Bienvenido/a de nuevo.',
+          title: 'Registro exitoso',
+          description: 'Tu cuenta ha sido creada.',
         });
         router.push('/lobbies');
       } else {
         toast({
           variant: 'destructive',
-          title: 'Error de inicio de sesión',
-          description: 'Por favor, introduce un email y contraseña válidos.',
+          title: 'Error de registro',
+          description: 'Por favor, completa todos los campos.',
         });
         setIsLoading(false);
       }
@@ -48,11 +49,23 @@ export default function LoginPage() {
       <div className="w-full max-w-md">
         <Card>
           <CardHeader className="text-center">
-            <CardTitle className="text-2xl font-bold">Nursey</CardTitle>
-            <CardDescription>Tu asistente de enfermería inteligente</CardDescription>
+            <CardTitle className="text-2xl font-bold">Crear Cuenta</CardTitle>
+            <CardDescription>Únete a Nursey para empezar a trabajar</CardDescription>
           </CardHeader>
           <CardContent>
-            <form onSubmit={handleLogin} className="space-y-4">
+            <form onSubmit={handleRegister} className="space-y-4">
+               <div className="space-y-2">
+                <Label htmlFor="fullName">Nombre Completo</Label>
+                <Input
+                  id="fullName"
+                  type="text"
+                  placeholder="Ej: Florencia Nightingale"
+                  required
+                  value={fullName}
+                  onChange={(e) => setFullName(e.target.value)}
+                  disabled={isLoading}
+                />
+              </div>
               <div className="space-y-2">
                 <Label htmlFor="email">Correo Electrónico</Label>
                 <Input
@@ -70,7 +83,7 @@ export default function LoginPage() {
                 <Input
                   id="password"
                   type="password"
-                  placeholder="••••••••"
+                  placeholder="Mínimo 6 caracteres"
                   required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
@@ -78,15 +91,15 @@ export default function LoginPage() {
                 />
               </div>
               <Button type="submit" className="w-full" disabled={isLoading}>
-                {isLoading ? 'Iniciando sesión...' : 'Iniciar Sesión'}
+                {isLoading ? 'Creando cuenta...' : 'Crear Cuenta'}
               </Button>
             </form>
           </CardContent>
           <CardFooter className="flex flex-col gap-4">
             <p className="text-xs text-center text-muted-foreground">
-              ¿No tienes una cuenta?{' '}
-              <Link href="/register" className="underline hover:text-primary">
-                Regístrate aquí
+              ¿Ya tienes una cuenta?{' '}
+              <Link href="/" className="underline hover:text-primary">
+                Inicia sesión aquí
               </Link>
             </p>
           </CardFooter>
