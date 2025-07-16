@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { PlusCircle, LogOut, Hospital, Users, Lock, ChevronRight } from 'lucide-react';
@@ -16,20 +16,38 @@ import {
 } from "@/components/ui/dialog"
 import { Lobby } from '@/lib/types';
 import { CreateLobbyForm } from '@/components/forms/create-lobby-form';
+import { getLobbies } from '@/lib/firebase/lobbies';
+import { useToast } from '@/hooks/use-toast';
+import { Skeleton } from '@/components/ui/skeleton';
 
-
-// Mock data, this will come from Firestore later
-const initialLobbies: Lobby[] = [
-  { id: '1', name: 'Ala Pediátrica', facility: 'Hospital General', patientCount: 12, hasPassword: true },
-  { id: '2', name: 'Cuidados Intensivos', facility: 'Hospital Central', patientCount: 8, hasPassword: true },
-  { id: '3', name: 'Maternidad', facility: 'Clínica Santa María', patientCount: 15, hasPassword: false },
-  { id: '4', name: 'Geriatría', facility: 'Hospital General', patientCount: 25, hasPassword: false },
-];
 
 export default function LobbiesPage() {
     const router = useRouter();
-    const [lobbies, setLobbies] = useState<Lobby[]>(initialLobbies);
+    const { toast } = useToast();
+    const [lobbies, setLobbies] = useState<Lobby[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
     const [isCreateLobbyOpen, setCreateLobbyOpen] = useState(false);
+
+    useEffect(() => {
+        const unsubscribe = getLobbies(
+            (lobbies) => {
+                setLobbies(lobbies);
+                setIsLoading(false);
+            },
+            (error) => {
+                console.error("Error fetching lobbies:", error);
+                toast({
+                    variant: 'destructive',
+                    title: 'Error al cargar lobbies',
+                    description: 'No se pudieron obtener los lobbies desde la base de datos.',
+                });
+                setIsLoading(false);
+            }
+        );
+
+        return () => unsubscribe();
+    }, [toast]);
+
 
     const handleJoinLobby = (lobbyId: string) => {
         // TODO: Handle password prompt if lobby.hasPassword is true
@@ -42,14 +60,12 @@ export default function LobbiesPage() {
         router.push('/');
     };
 
-    const handleLobbyCreated = (newLobby: Omit<Lobby, 'id' | 'patientCount'>) => {
-        const lobbyWithId: Lobby = {
-            ...newLobby,
-            id: (lobbies.length + 1).toString(),
-            patientCount: 0,
-        };
-        setLobbies(prevLobbies => [...prevLobbies, lobbyWithId]);
+    const handleLobbyCreated = () => {
         setCreateLobbyOpen(false);
+        toast({
+            title: 'Lobby creado',
+            description: 'El nuevo lobby se ha creado exitosamente.',
+        })
     };
 
   return (
@@ -89,32 +105,51 @@ export default function LobbiesPage() {
           </Dialog>
         </header>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {lobbies.map((lobby) => (
-            <Card key={lobby.id} className="hover:shadow-md transition-shadow">
-              <CardHeader>
-                <CardTitle className="flex items-center justify-between">
-                    <span>{lobby.name}</span>
-                    {lobby.hasPassword && <Lock className="h-4 w-4 text-muted-foreground" />}
-                </CardTitle>
-                <CardDescription className='flex items-center pt-1'>
-                    <Hospital className="mr-2 h-4 w-4" />
-                    {lobby.facility}
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="flex items-center text-sm text-muted-foreground">
-                <Users className="mr-2 h-4 w-4" />
-                <span>{lobby.patientCount} pacientes</span>
-              </CardContent>
-              <div className="p-6 pt-0">
-                <Button onClick={() => handleJoinLobby(lobby.id)} className="w-full">
-                    Unirse al Lobby
-                    <ChevronRight className="ml-2 h-4 w-4" />
-                </Button>
-              </div>
-            </Card>
-          ))}
-        </div>
+        {isLoading ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {[...Array(3)].map((_, i) => (
+                    <Card key={i}>
+                        <CardHeader>
+                            <Skeleton className="h-6 w-3/4 mb-2" />
+                            <Skeleton className="h-4 w-1/2" />
+                        </CardHeader>
+                        <CardContent>
+                            <Skeleton className="h-4 w-1/4" />
+                        </CardContent>
+                        <div className="p-6 pt-0">
+                            <Skeleton className="h-10 w-full" />
+                        </div>
+                    </Card>
+                ))}
+            </div>
+        ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {lobbies.map((lobby) => (
+                <Card key={lobby.id} className="hover:shadow-md transition-shadow">
+                <CardHeader>
+                    <CardTitle className="flex items-center justify-between">
+                        <span>{lobby.name}</span>
+                        {lobby.hasPassword && <Lock className="h-4 w-4 text-muted-foreground" />}
+                    </CardTitle>
+                    <CardDescription className='flex items-center pt-1'>
+                        <Hospital className="mr-2 h-4 w-4" />
+                        {lobby.facility}
+                    </CardDescription>
+                </CardHeader>
+                <CardContent className="flex items-center text-sm text-muted-foreground">
+                    <Users className="mr-2 h-4 w-4" />
+                    <span>{lobby.patientCount} pacientes</span>
+                </CardContent>
+                <div className="p-6 pt-0">
+                    <Button onClick={() => handleJoinLobby(lobby.id)} className="w-full">
+                        Unirse al Lobby
+                        <ChevronRight className="ml-2 h-4 w-4" />
+                    </Button>
+                </div>
+                </Card>
+            ))}
+            </div>
+        )}
       </main>
     </div>
   );

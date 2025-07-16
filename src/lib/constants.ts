@@ -4,10 +4,12 @@
 // effectively starting from a clean slate. Your old data will remain in
 // Firestore under the old collection names.
 
-const DATA_VERSION_SUFFIX = '_v2';
+const DATA_VERSION_SUFFIX = '_v1';
 
-export const CONVERSATIONS = 'conversations' + DATA_VERSION_SUFFIX;
-export const MESSAGES = 'messages'; // Sub-collection name, can stay the same.
-export const MEMORIES = 'memories' + DATA_VERSION_SUFFIX;
-export const REMINDERS = 'reminders' + DATA_VERSION_SUFFIX;
-export const APP_STATE = 'app_state'; // This can be shared across versions.
+// Main Collections
+export const LOBBIES = 'lobbies' + DATA_VERSION_SUFFIX;
+export const NURSES = 'nurses' + DATA_VERSION_SUFFIX;
+
+// Sub-collections
+export const PATIENTS = 'patients';
+export const ENTRIES = 'entries';
