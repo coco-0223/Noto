@@ -3,7 +3,7 @@ import './globals.css';
 import { Toaster } from "@/components/ui/toaster";
 
 export const metadata: Metadata = {
-  title: 'Nursey',
+  title: 'Noto',
   description: 'Tu asistente de enfermería inteligente',
 };
 

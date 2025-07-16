@@ -17,8 +17,6 @@ import { Input } from "@/components/ui/input"
 import { useState } from "react";
 import type { Lobby } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
-import { useRouter } from "next/navigation";
-import { verifyLobbyPassword } from "@/app/actions";
 
 const formSchema = z.object({
   password: z.string().min(1, {
@@ -35,7 +33,6 @@ type JoinLobbyFormProps = {
 export function JoinLobbyForm({ lobby, onCorrectPassword }: JoinLobbyFormProps) {
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
-  const router = useRouter();
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -46,21 +43,19 @@ export function JoinLobbyForm({ lobby, onCorrectPassword }: JoinLobbyFormProps) 
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsLoading(true);
-
-    const result = await verifyLobbyPassword(lobby.id, values.password);
-
-    if (result.success) {
+    
+    // Client-side validation
+    if (lobby.password === values.password) {
         toast({
             title: "¡Éxito!",
             description: `Te has unido al lobby "${lobby.name}".`,
         })
         onCorrectPassword();
-        router.push(`/lobbies/${lobby.id}`);
     } else {
         toast({
             variant: "destructive",
             title: "Error",
-            description: result.message,
+            description: "La contraseña es incorrecta.",
         });
         form.reset();
     }
