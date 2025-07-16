@@ -53,6 +53,7 @@ export default function LobbiesPage() {
 
 
     const handleJoinLobbyClick = (lobby: Lobby) => {
+        console.log('Lobby seleccionado para unirse:', lobby);
         if (lobby.hasPassword) {
             setSelectedLobby(lobby);
         } else {
