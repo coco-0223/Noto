@@ -19,6 +19,7 @@ import { CreateLobbyForm } from '@/components/forms/create-lobby-form';
 import { getLobbies } from '@/lib/firebase/lobbies';
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
+import { JoinLobbyForm } from '@/components/forms/join-lobby-form';
 
 
 export default function LobbiesPage() {
@@ -27,6 +28,7 @@ export default function LobbiesPage() {
     const [lobbies, setLobbies] = useState<Lobby[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [isCreateLobbyOpen, setCreateLobbyOpen] = useState(false);
+    const [selectedLobby, setSelectedLobby] = useState<Lobby | null>(null);
 
     useEffect(() => {
         const unsubscribe = getLobbies(
@@ -49,10 +51,12 @@ export default function LobbiesPage() {
     }, [toast]);
 
 
-    const handleJoinLobby = (lobbyId: string) => {
-        // TODO: Handle password prompt if lobby.hasPassword is true
-        // TODO: Cache password
-        router.push(`/lobbies/${lobbyId}`);
+    const handleJoinLobbyClick = (lobby: Lobby) => {
+        if (lobby.hasPassword) {
+            setSelectedLobby(lobby);
+        } else {
+            router.push(`/lobbies/${lobby.id}`);
+        }
     };
     
     const handleLogout = () => {
@@ -66,6 +70,12 @@ export default function LobbiesPage() {
             title: 'Lobby creado',
             description: 'El nuevo lobby se ha creado exitosamente.',
         })
+    };
+
+    const handleCorrectPassword = (lobbyId: string) => {
+        // TODO: Cache password
+        setSelectedLobby(null);
+        router.push(`/lobbies/${lobbyId}`);
     };
 
   return (
@@ -125,7 +135,7 @@ export default function LobbiesPage() {
         ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {lobbies.map((lobby) => (
-                <Card key={lobby.id} className="hover:shadow-md transition-shadow">
+                <Card key={lobby.id} className="flex flex-col">
                 <CardHeader>
                     <CardTitle className="flex items-center justify-between">
                         <span>{lobby.name}</span>
@@ -136,12 +146,12 @@ export default function LobbiesPage() {
                         {lobby.facility}
                     </CardDescription>
                 </CardHeader>
-                <CardContent className="flex items-center text-sm text-muted-foreground">
+                <CardContent className="flex-grow flex items-center text-sm text-muted-foreground">
                     <Users className="mr-2 h-4 w-4" />
                     <span>{lobby.patientCount} pacientes</span>
                 </CardContent>
                 <div className="p-6 pt-0">
-                    <Button onClick={() => handleJoinLobby(lobby.id)} className="w-full">
+                    <Button onClick={() => handleJoinLobbyClick(lobby)} className="w-full">
                         Unirse al Lobby
                         <ChevronRight className="ml-2 h-4 w-4" />
                     </Button>
@@ -151,6 +161,24 @@ export default function LobbiesPage() {
             </div>
         )}
       </main>
+
+      {/* Join Lobby with Password Dialog */}
+      <Dialog open={!!selectedLobby} onOpenChange={(isOpen) => !isOpen && setSelectedLobby(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Contraseña Requerida</DialogTitle>
+            <DialogDescription>
+              El lobby "{selectedLobby?.name}" está protegido. Por favor, introduce la contraseña para unirte.
+            </DialogDescription>
+          </DialogHeader>
+          {selectedLobby && (
+            <JoinLobbyForm 
+              lobby={selectedLobby} 
+              onCorrectPassword={() => handleCorrectPassword(selectedLobby.id)}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
