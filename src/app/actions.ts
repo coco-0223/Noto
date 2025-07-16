@@ -7,6 +7,10 @@ import { LOBBIES } from '@/lib/constants';
 // Server action to verify lobby password securely
 export async function verifyLobbyPassword(lobbyId: string, passwordAttempt: string): Promise<{ success: boolean; message: string }> {
     try {
+        if (!lobbyId || !passwordAttempt) {
+            return { success: false, message: 'ID de lobby o contraseña no proporcionados.' };
+        }
+
         const lobbyRef = doc(db, LOBBIES, lobbyId);
         const lobbySnap = await getDoc(lobbyRef);
 
@@ -23,6 +27,6 @@ export async function verifyLobbyPassword(lobbyId: string, passwordAttempt: stri
         }
     } catch (error) {
         console.error("Error verifying lobby password:", error);
-        return { success: false, message: 'Ocurrió un error en el servidor.' };
+        return { success: false, message: 'Ocurrió un error en el servidor al verificar la contraseña.' };
     }
 }
