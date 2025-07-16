@@ -30,6 +30,8 @@ export default function LobbiesPage() {
     const [isLoading, setIsLoading] = useState(true);
     const [isCreateLobbyOpen, setCreateLobbyOpen] = useState(false);
     const [selectedLobby, setSelectedLobby] = useState<Lobby | null>(null);
+    const [isJoinLobbyOpen, setJoinLobbyOpen] = useState(false);
+
 
     useEffect(() => {
         const unsubscribe = getLobbies(
@@ -53,9 +55,9 @@ export default function LobbiesPage() {
 
 
     const handleJoinLobbyClick = (lobby: Lobby) => {
-        console.log('Lobby seleccionado para unirse:', lobby);
         if (lobby.hasPassword) {
             setSelectedLobby(lobby);
+            setJoinLobbyOpen(true);
         } else {
             router.push(`/lobbies/${lobby.id}`);
         }
@@ -74,16 +76,12 @@ export default function LobbiesPage() {
         })
     };
 
-    const handleCorrectPassword = () => {
-        if (selectedLobby) {
-            toast({
-                title: "¡Éxito!",
-                description: `Te has unido al lobby "${selectedLobby.name}".`,
-            });
-            router.push(`/lobbies/${selectedLobby.id}`);
-            setSelectedLobby(null);
-        }
+    const handleSuccessfulJoin = (lobbyId: string) => {
+        setJoinLobbyOpen(false);
+        setSelectedLobby(null);
+        router.push(`/lobbies/${lobbyId}`);
     };
+
 
   return (
     <div className="flex min-h-screen bg-secondary/30">
@@ -170,7 +168,7 @@ export default function LobbiesPage() {
       </main>
 
       {/* Join Lobby with Password Dialog */}
-      <Dialog open={!!selectedLobby} onOpenChange={(isOpen) => !isOpen && setSelectedLobby(null)}>
+      <Dialog open={isJoinLobbyOpen} onOpenChange={setJoinLobbyOpen}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Contraseña Requerida</DialogTitle>
@@ -180,8 +178,8 @@ export default function LobbiesPage() {
           </DialogHeader>
           {selectedLobby && (
             <JoinLobbyForm 
-              lobby={selectedLobby} 
-              onCorrectPassword={handleCorrectPassword}
+              lobbyId={selectedLobby.id} 
+              onSuccessfulJoin={() => handleSuccessfulJoin(selectedLobby.id)}
             />
           )}
         </DialogContent>
