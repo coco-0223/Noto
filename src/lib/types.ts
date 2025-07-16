@@ -1,5 +1,7 @@
 // Types for Nursey App
 
+export type LobbyRole = 'Admin' | 'Enfermero' | 'Espectador';
+
 export type Nurse = {
     id: string;
     email: string;
