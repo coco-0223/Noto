@@ -1,37 +1,31 @@
-import type { Timestamp } from 'firebase/firestore';
+// Types for Nursey App
 
-export type Message = {
-  id: string;
-  text: string;
-  sender: 'user' | 'bot';
-  timestamp: Timestamp | string; // Firestore uses Timestamp, optimistic uses string
-  feedback?: 'liked' | 'disliked';
+export type Nurse = {
+    id: string;
+    email: string;
+    fullName: string;
 };
 
-export type ChatHistory = {
-  role: 'user' | 'bot';
-  content: string;
+export type Lobby = {
+    id: string;
+    name: string;
+    facility: string;
+    patientCount: number;
+    hasPassword?: boolean;
 };
 
-export type Conversation = {
-  id: string;
-  title: string;
-  lastMessage: string;
-  timestamp: Timestamp;
-  pinned?: boolean;
+export type Patient = {
+    id: string;
+    name: string;
+    roomNumber: string;
+    // other patient details
 };
 
-export type Memory = {
-    id?: string;
-    summary: string;
-    category: string;
-    createdAt: Timestamp;
-}
-
-export type Reminder = {
-    id?: string;
-    conversationId: string;
+export type Note = {
+    id: string;
     text: string;
-    triggerAt: Timestamp;
-    processed: boolean;
-}
+    authorId: string; // Nurse ID
+    authorName: string;
+    timestamp: Date;
+    audioUrl?: string; // Link to the voice note if it exists
+};
