@@ -79,7 +79,7 @@ export function InviteNurseForm({ onInviteSent }: InviteNurseFormProps) {
                 <SelectContent>
                   <SelectItem value="Enfermero">Enfermero</SelectItem>
                   <SelectItem value="Admin">Admin</SelectItem>
-                  <SelectItem value="Espectador">Espectador</_SelectIte>
+                  <SelectItem value="Espectador">Espectador</SelectItem>
                 </SelectContent>
               </Select>
               <FormMessage />
