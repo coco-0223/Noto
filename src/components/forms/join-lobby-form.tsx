@@ -49,10 +49,6 @@ export function JoinLobbyForm({ lobby, onCorrectPassword }: JoinLobbyFormProps) 
     // Client-side validation
     if (lobby.password === values.password) {
         console.log("¡Contraseña correcta! Redirigiendo...");
-        toast({
-            title: "¡Éxito!",
-            description: `Te has unido al lobby "${lobby.name}".`,
-        })
         onCorrectPassword();
     } else {
         toast({
