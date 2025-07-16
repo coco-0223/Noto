@@ -168,22 +168,22 @@ export default function LobbiesPage() {
       </main>
 
       {/* Join Lobby with Password Dialog */}
-      <Dialog open={isJoinLobbyOpen} onOpenChange={setJoinLobbyOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Contraseña Requerida</DialogTitle>
-            <DialogDescription>
-              El lobby "{selectedLobby?.name}" está protegido. Por favor, introduce la contraseña para unirte.
-            </DialogDescription>
-          </DialogHeader>
-          {selectedLobby && (
+      {selectedLobby && (
+        <Dialog open={isJoinLobbyOpen} onOpenChange={setJoinLobbyOpen}>
+            <DialogContent>
+            <DialogHeader>
+                <DialogTitle>Contraseña Requerida</DialogTitle>
+                <DialogDescription>
+                El lobby "{selectedLobby?.name}" está protegido. Por favor, introduce la contraseña para unirte.
+                </DialogDescription>
+            </DialogHeader>
             <JoinLobbyForm 
-              lobbyId={selectedLobby.id} 
-              onSuccessfulJoin={handleSuccessfulJoin}
+                lobbyId={selectedLobby.id} 
+                onSuccessfulJoin={handleSuccessfulJoin}
             />
-          )}
-        </DialogContent>
-      </Dialog>
+            </DialogContent>
+        </Dialog>
+      )}
     </div>
   );
 }
