@@ -1,8 +1,8 @@
 'use server';
 
 import { doc, getDoc } from 'firebase/firestore';
-import { db } from './lib/firebase';
-import { LOBBIES } from './lib/constants';
+import { db } from '@/lib/firebase';
+import { LOBBIES } from '@/lib/constants';
 
 // Server action to verify lobby password securely
 export async function verifyLobbyPassword(lobbyId: string, passwordAttempt: string): Promise<{ success: boolean; message: string }> {
