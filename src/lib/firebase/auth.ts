@@ -1,11 +1,13 @@
 
-import { auth } from '@/lib/firebase';
+import { auth, db } from '@/lib/firebase';
 import { 
     createUserWithEmailAndPassword, 
     signInWithEmailAndPassword,
     updateProfile,
     User
 } from 'firebase/auth';
+import { doc, setDoc } from 'firebase/firestore';
+import { NURSES } from '../constants';
 
 export const signUpWithEmailAndPassword = async (email: string, password: string, fullName: string) => {
     try {
@@ -17,8 +19,13 @@ export const signUpWithEmailAndPassword = async (email: string, password: string
             displayName: fullName
         });
         
-        // Here you might want to create a document in a 'users' or 'nurses' collection in Firestore
-        // For example: await setDoc(doc(db, "nurses", user.uid), { fullName, email });
+        // Create a nurse document in Firestore
+        const nurseRef = doc(db, NURSES, user.uid);
+        await setDoc(nurseRef, {
+            fullName,
+            email,
+            uid: user.uid
+        });
         
         return user;
     } catch (error) {

@@ -18,6 +18,7 @@ import { useState } from "react";
 import type { Lobby } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
+import { verifyLobbyPassword } from "@/app/actions";
 
 const formSchema = z.object({
   password: z.string().min(1, {
@@ -43,11 +44,12 @@ export function JoinLobbyForm({ lobby, onCorrectPassword }: JoinLobbyFormProps) 
     },
   })
 
-  function onSubmit(values: z.infer<typeof formSchema>) {
+  async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsLoading(true);
 
-    // TODO: Connect this to a server action to verify password securely
-    if (values.password === lobby.password) {
+    const result = await verifyLobbyPassword(lobby.id, values.password);
+
+    if (result.success) {
         toast({
             title: "¡Éxito!",
             description: `Te has unido al lobby "${lobby.name}".`,
@@ -58,7 +60,7 @@ export function JoinLobbyForm({ lobby, onCorrectPassword }: JoinLobbyFormProps) 
         toast({
             variant: "destructive",
             title: "Error",
-            description: "La contraseña es incorrecta. Inténtalo de nuevo.",
+            description: result.message,
         });
         form.reset();
     }
