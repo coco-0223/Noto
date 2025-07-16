@@ -26,7 +26,7 @@ const formSchema = z.object({
 
 
 type CreatePatientFormProps = {
-    onPatientCreated: (patient: Omit<Patient, 'id' | 'lobbyId'>) => void;
+    onPatientCreated: (patient: Omit<Patient, 'id' | 'lobbyId' | 'lastEntry'>) => Promise<void>;
     lobbyId: string;
 }
 
@@ -43,13 +43,16 @@ export function CreatePatientForm({ onPatientCreated }: CreatePatientFormProps) 
     },
   })
 
-  function onSubmit(values: z.infer<typeof formSchema>) {
+  async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsLoading(true);
-    // Simulate API call
-    setTimeout(() => {
-        onPatientCreated(values);
+    try {
+        await onPatientCreated(values);
+        form.reset();
+    } catch (error) {
+        // Error is handled by the parent component's toast
+    } finally {
         setIsLoading(false);
-    }, 500);
+    }
   }
 
   return (
